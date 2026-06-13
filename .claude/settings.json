@@ -9,6 +9,7 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(sf --version)",
+      "Bash(sf *)",
       "Bash(sf org *)",
       "Bash(sf project *)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d['result']; print\\('errMsg:', r.get\\('errorMessage'\\)\\); print\\('total', r.get\\('numberComponentsTotal'\\)\\)\")",
@@ -34,7 +35,13 @@
       "Bash(rm -f ./fls.json)",
       "Bash(git rm *)",
       "Bash(rmdir \"force-app/main/default/customIndexes\")",
-      "Bash(ls \"force-app/main/default/customIndexes\")"
+      "Bash(ls \"force-app/main/default/customIndexes\")",
+      "Bash(tail *)",
+      "Bash(head *)",
+      "Bash(jq *)",
+      "Bash(python -c \"import json;d=json.load\\(open\\('c:/Users/PC/Documents/MyCode/Bluesky/BlueSkyClient/.claude/settings.json'\\)\\);print\\('OK, allow rules:',len\\(d['permissions']['allow']\\)\\)\")",
+      "Edit",
+      "Write"
     ],
     "additionalDirectories": [
       "\\tmp"
