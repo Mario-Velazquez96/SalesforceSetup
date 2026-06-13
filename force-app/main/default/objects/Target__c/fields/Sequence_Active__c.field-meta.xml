@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sequence_Active__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Kill switch for the email/call cadence. When false, the engine skips this Target. (R1)</description>
+    <externalId>false</externalId>
+    <label>Sequence Active</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

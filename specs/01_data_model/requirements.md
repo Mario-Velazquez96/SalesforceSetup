@@ -8,7 +8,7 @@
 
 Establish all declarative metadata the cadence engine depends on: custom fields on
 `Target__c` and `Task`, two Custom Metadata Types with their seed rows, 10 Lightning
-Email Templates, a custom index, and the permission sets. This feature contains **no
+Email Templates, and the permission sets. This feature contains **no
 business logic** — every later feature depends on it.
 
 ## In scope
@@ -20,7 +20,6 @@ business logic** — every later feature depends on it.
 - `Sequence_Step_Config__mdt` (CMDT) + 10 rows (steps 1–10).
 - `Sequence_Terminal_Status__mdt` (CMDT) + 4 rows.
 - 10 Lightning Email Templates `Sequence_Email_1..10`.
-- Custom index on `Next_Action_Date__c`.
 - Permission sets `Login_Sequence_Admin`, `Login_Sequence_User` (FLS for the new fields).
 
 ## Out of scope
@@ -45,7 +44,7 @@ business logic** — every later feature depends on it.
 **R12 (Ubiquitous):** The system shall provide 10 rows in `Sequence_Step_Config__mdt` for steps 1–10 per the table in Design §Rows, where steps 1–5 use `Next_Trigger_Type__c='CallCompleted'`, steps 6–9 use `Timer` with `Next_Wait_Days__c` = 14/7/14/14, step 10 uses `None`, and `Is_Reply__c=true` for steps 2–10.
 **R13 (Ubiquitous):** The system shall provide the Custom Metadata Type `Sequence_Terminal_Status__mdt` with fields `Status_Value__c` (Text) and `Stop_Reason__c` (Text), and rows for `Converted`, `Meeting Booked`, `Do Not Contact`, `Replied`.
 **R14 (Ubiquitous):** The system shall provide 10 Lightning Email Templates `Sequence_Email_1..10` whose merge fields resolve `[Target Name]`→`{{{Target__c.Name}}}`, `[Primary Contact]`→`{{{Contact.FirstName}}}`, `[Billing City]`→`{{{Target__c.Billing_City__c}}}`.
-**R15 (Ubiquitous):** The system shall provide a custom index on `Target__c.Next_Action_Date__c` (to support the scheduler's selective query in `04_scheduler_batch`).
+~~R15 — REMOVED 2026-06-13: custom index dropped; see resolved decisions.~~
 **R16 (Ubiquitous):** The system shall provide permission sets `Login_Sequence_Admin` (manage the CMDTs) and `Login_Sequence_User` (FLS read/edit on all new `Target__c` and `Task` fields).
 **R17 (Ubiquitous):** All new metadata shall use API version **66.0**.
 
@@ -63,8 +62,16 @@ business logic** — every later feature depends on it.
 - **`Company_Name__c` targets `Account`** (confirmed) — `Billing_City__c =
   Company_Name__r.BillingCity` (R8). Was Solution Design §10 item 4.
 
+### Resolved decisions (2026-06-13)
+
+- **Custom index on `Target__c.Next_Action_Date__c` DROPPED (former R15).** The scheduler
+  (feature 04) reads due targets via a Batch Apex `Database.getQueryLocator` in `start()`.
+  Batch `start()` QueryLocators are exempt from the "non-selective query against a large
+  object" exception, so the query runs without a custom index — the index was only a
+  performance optimization, not a correctness requirement. The org also expects modest
+  `Target__c` volume. The custom index, and its Salesforce Support-case prerequisite, are
+  therefore removed from scope. R16/R17 numbering is intentionally left unchanged.
+
 ## Open items
 
-- **Index request (R15):** a custom index on `Next_Action_Date__c` may require a Salesforce
-  Support case depending on org edition/field; treat as a prerequisite, not deployable
-  metadata. (Not a design decision — an operational step.)
+- None.

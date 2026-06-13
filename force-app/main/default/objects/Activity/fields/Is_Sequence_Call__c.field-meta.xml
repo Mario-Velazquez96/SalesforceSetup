@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Sequence_Call__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Marks a Task as a cadence-generated call, for robust engine detection. (R9)</description>
+    <label>Is Sequence Call</label>
+    <type>Checkbox</type>
+</CustomField>

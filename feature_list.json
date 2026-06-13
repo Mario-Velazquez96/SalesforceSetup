@@ -4,7 +4,7 @@
       "name": "01_data_model",
       "description": "Target__c + Task custom fields, Billing_City__c formula, Sequence_Step_Config__mdt (+10 rows) and Sequence_Terminal_Status__mdt (+4 rows), 10 Lightning Email Templates, Next_Action_Date__c index, permission sets. Pure metadata; foundation for everything.",
       "sdd": true,
-      "status": "spec_ready",
+      "status": "done",
       "depends_on": []
     },
     {

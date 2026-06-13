@@ -7,7 +7,37 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git branch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(sf --version)",
+      "Bash(sf org *)",
+      "Bash(sf project *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d['result']; print\\('errMsg:', r.get\\('errorMessage'\\)\\); print\\('total', r.get\\('numberComponentsTotal'\\)\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d['result']; print\\('status',r['status'],'errors',r['numberComponentErrors'],'deployed',r['numberComponentsDeployed'],'total',r['numberComponentsTotal']\\); print\\('errMsg', r.get\\('errorMessage'\\)\\); [print\\('FAIL',f['fullName'],f.get\\('problem',''\\)\\) for f in \\(r['details'].get\\('componentFailures'\\) or []\\)]\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d['result']; print\\('status',r['status'],'err',r.get\\('errorMessage'\\)\\); [print\\('FAIL',f['fullName'],f.get\\('problem',''\\)\\) for f in \\(r['details'].get\\('componentFailures'\\) or []\\)]\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); r=d.get\\('result',{}\\); [print\\(f['fullName'], '|', f.get\\('error'\\),'| line', f.get\\('lineNumber'\\), 'col', f.get\\('columnNumber'\\)\\) for f in r.get\\('details',{}\\).get\\('componentFailures',[]\\)]\")",
+      "Bash(rm -rf /tmp/taskdeploy)",
+      "Bash(mkdir -p /tmp/taskdeploy/objects/Task/fields)",
+      "Bash(cp force-app/main/default/objects/Task/fields/Is_Sequence_Call__c.field-meta.xml force-app/main/default/objects/Task/fields/Sequence_Step__c.field-meta.xml /tmp/taskdeploy/objects/Task/fields/)",
+      "Read(//tmp/**)",
+      "Bash(cd \"c:/Users/PC/Documents/MyCode/Bluesky/BlueSkyClient\" && rm -rf /tmp/tt /tmp/taskdeploy && sf project deploy start --metadata \"PermissionSet:Login_Sequence_User\" \"PermissionSet:Login_Sequence_Admin\" --target-org BlueSky 2>/dev/null | tail -20)",
+      "Bash(python -c \"import sys,json;d=json.load\\(sys.stdin\\);r=d['result'];print\\('status',r['status'],'deployed',r['numberComponentsDeployed'],'errors',r['numberComponentErrors']\\);print\\('errMsg',r.get\\('errorMessage'\\)\\);[print\\('FAIL',f['fullName'],f.get\\('problem',''\\)\\) for f in \\(r['details'].get\\('componentFailures'\\) or []\\)]\")",
+      "Bash(rm -rf .tmp_ps)",
+      "Bash(mkdir -p .tmp_ps/permissionsets)",
+      "Bash(python -c ' *)",
+      "Bash(sf data *)",
+      "Bash(bash /tmp/q.sh)",
+      "Bash(sf apex *)",
+      "Bash(node -e \"const d=require\\('/tmp/fls.json'\\); console.log\\('totalSize='+d.result.totalSize\\); d.result.records.forEach\\(r=>console.log\\(r.Parent.Name+' | '+r.Field+' | R='+r.PermissionsRead+' E='+r.PermissionsEdit\\)\\);\")",
+      "Bash(node -e \"const d=require\\('./fd.json'\\); console.log\\('totalSize='+d.result.totalSize\\); d.result.records.forEach\\(r=>console.log\\(r.EntityDefinition.QualifiedApiName+'.'+r.QualifiedApiName\\)\\);\")",
+      "Bash(rm -f ./fd.json)",
+      "Bash(node -e \"const d=require\\('./fls.json'\\); console.log\\('totalSize='+d.result.totalSize\\); d.result.records.forEach\\(r=>console.log\\(r.Parent.Name+' | '+r.Field+' | R='+r.PermissionsRead+' E='+r.PermissionsEdit\\)\\);\")",
+      "Bash(rm -f ./fls.json)",
+      "Bash(git rm *)",
+      "Bash(rmdir \"force-app/main/default/customIndexes\")",
+      "Bash(ls \"force-app/main/default/customIndexes\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

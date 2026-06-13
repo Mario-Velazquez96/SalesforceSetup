@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Next_Trigger_Type__c</fullName>
+    <externalId>false</externalId>
+    <label>Next Trigger Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>CallCompleted</fullName>
+                <default>false</default>
+                <label>CallCompleted</label>
+            </value>
+            <value>
+                <fullName>Timer</fullName>
+                <default>false</default>
+                <label>Timer</label>
+            </value>
+            <value>
+                <fullName>None</fullName>
+                <default>false</default>
+                <label>None</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

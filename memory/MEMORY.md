@@ -1,0 +1,1 @@
+- [Salesforce org gotchas](salesforce-org-gotchas.md) — Task fields go on Activity object; reflected fields need FLS; CMDT records need xmlns:xsd
