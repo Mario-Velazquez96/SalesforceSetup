@@ -53,6 +53,18 @@
 		<name>CustomObject</name>
 	</types>
 	<types>
+		<members>TargetSelector</members>
+		<members>TaskSelector</members>
+		<members>ContentSelector</members>
+		<members>SequenceStepConfigService</members>
+		<members>SequenceEmailService</members>
+		<members>SequenceEngineService</members>
+		<members>SequenceEmailServiceTest</members>
+		<members>SequenceEngineServiceTest</members>
+		<members>SequenceSelectorsTest</members>
+		<name>ApexClass</name>
+	</types>
+	<types>
 		<members>Sequence_Step_Config.Step_1</members>
 		<members>Sequence_Step_Config.Step_2</members>
 		<members>Sequence_Step_Config.Step_3</members>

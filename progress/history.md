@@ -35,3 +35,28 @@ R15 custom index — DROPPED (2026-06-13):
 
 Result: all originally-deployed requirements satisfied; reviewer approved on re-review.
 R15 subsequently removed from scope (see above) — no carried-forward operational items.
+
+## 02_core_engine — completed 2026-06-13
+
+Delivered (callable sequence core, unit/bulk tested in isolation):
+- Selectors TargetSelector, TaskSelector, ContentSelector — inherited sharing,
+  all queries WITH USER_MODE.
+- SequenceStepConfigService — resolves Sequence_Step_Config__mdt per step.
+- SequenceEmailService — template render, "RE:" subject prefix, attachment by
+  ContentDocumentId, OrgWideEmailAddress resolved by name, plus @InvocableMethod
+  entry point.
+- SequenceEngineService — processStep + bulk processSteps with kill-switch guard,
+  Call and Email task creation, step advance, and Next_Trigger_Type scheduling
+  (Timer / CallCompleted / None). Bulkified to 1 DML per object, USER_MODE with
+  partial-success handling.
+
+Verification: 27/27 feature tests passing; SequenceEngineService 96% and
+SequenceEmailService 96% coverage (both above the 95% target).
+
+Carried notes:
+- (a) Literal org-wide coverage ~52% is due ONLY to pre-existing out-of-scope
+  Salesforce sample classes sitting at 0%; every 02_core_engine feature class is
+  96–100%. Reviewer accepted this as non-blocking.
+- (b) The BlueSky org has no OrgWideEmailAddress, so the engine resolves OWE by
+  DisplayName and degrades gracefully to the running user when none exists —
+  intended behavior per R3/R14, not a hardcoded fallback.

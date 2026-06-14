@@ -1,1 +1,3 @@
 - [Salesforce org gotchas](salesforce-org-gotchas.md) — Task fields go on Activity object; reflected fields need FLS; CMDT records need xmlns:xsd
+- [BlueSky org coverage & OWE](bluesky-org-coverage-and-owe.md) — org-wide coverage ~52% from out-of-scope sample classes; no OrgWideEmailAddress; sf CLI via cmd //c
+- [Coverage target 85%](coverage-target-85.md) — feature Apex coverage gate is ≥85% (user-confirmed), not the 95% in solution_design.md

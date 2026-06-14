@@ -1,7 +1,7 @@
 # Current session
 
 ## Feature in progress
-None.
+None
 
 ## State
 
