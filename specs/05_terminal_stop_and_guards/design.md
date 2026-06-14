@@ -11,6 +11,15 @@ handler mutates `Trigger.new` directly, so there's **no extra DML** (Order of Ex
 §4.2). The terminal set is data (`Sequence_Terminal_Status__mdt`), so the stop list is
 admin-tunable.
 
+## Data-model prerequisite (R8)
+
+The `Target__c.Status__c` **restricted** picklist value set must contain the four terminal
+values `Converted`, `Meeting Booked`, `Do Not Contact`, `Replied` (added via the field's
+`valueSetDefinition`). Without them, a restricted-picklist save of a terminal status fails
+(`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`) and R1 is unreachable. The terminal **match**
+itself stays metadata-driven via `Sequence_Terminal_Status__mdt` (R5) — no code or CMDT
+change; only the value set is extended.
+
 ## Class changes (one-trigger-per-object)
 
 ```

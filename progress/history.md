@@ -101,3 +101,32 @@ Delivered (one scheduled job that drives all time-based progression):
 
 Verification: 11/11 tests passing; per-class coverage SequenceSchedulerBatch 96%
 and SequenceSchedulerSchedulable 100% (both above the >= 85% gate).
+
+## 05_terminal_stop_and_guards — completed 2026-06-13
+
+Delivered (terminal-stop guard added to the existing event entry points):
+- Added a before-update branch to the EXISTING single TargetTrigger /
+  TargetTriggerHandler from feature 03 — routed by `Trigger.operationType`, with
+  NO second trigger created (one trigger per object preserved).
+- On a Target whose `Status__c` changes to a terminal value while the sequence
+  is active, the branch stamps `Sequence_Active__c = false`,
+  `Sequence_Stop_Reason__c = `the matching
+  `Sequence_Terminal_Status__mdt.Stop_Reason__c`, and `Next_Action_Date__c = null`
+  directly on `Trigger.new` with NO extra DML.
+- The terminal status set is metadata-driven from `Sequence_Terminal_Status__mdt`.
+- Skips Targets whose status is unchanged and those already inactive; shares
+  feature 03's static `Set<Id>` recursion guard.
+- Confirmed both the manual kill switch and the automatic terminal kill switch
+  halt the 03 (start/call) and 04 (scheduler) progression.
+
+Verification: 26/26 feature tests passing; per-class coverage
+TargetTriggerHandler 98% and TargetTrigger 100% (both above the >= 85% gate).
+
+Carried note (R8 added mid-flight):
+- The `Target__c.Status__c` RESTRICTED picklist originally lacked the 4 terminal
+  values (Converted / Meeting Booked / Do Not Contact / Replied) referenced by
+  `Sequence_Terminal_Status__mdt`, so the terminal-stop could never fire. Per
+  human decision (2026-06-13) those 4 values were ADDED to the `Status__c` value
+  set (deployed), while the CMDT terminal set was kept as exactly those 4 and the
+  existing client statuses were left non-terminal. This was a data-model gap
+  carried from feature 01, resolved within feature 05.

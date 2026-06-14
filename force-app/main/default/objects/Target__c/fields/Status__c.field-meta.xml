@@ -60,6 +60,26 @@
                 <default>false</default>
                 <label>Closed</label>
             </value>
+            <value>
+                <fullName>Converted</fullName>
+                <default>false</default>
+                <label>Converted</label>
+            </value>
+            <value>
+                <fullName>Meeting Booked</fullName>
+                <default>false</default>
+                <label>Meeting Booked</label>
+            </value>
+            <value>
+                <fullName>Do Not Contact</fullName>
+                <default>false</default>
+                <label>Do Not Contact</label>
+            </value>
+            <value>
+                <fullName>Replied</fullName>
+                <default>false</default>
+                <label>Replied</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

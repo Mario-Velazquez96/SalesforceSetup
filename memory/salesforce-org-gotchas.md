@@ -13,5 +13,7 @@ Three deploy gotchas confirmed in the BlueSky sandbox during feature 01_data_mod
 
 3. **CustomMetadata record files need `xmlns:xsd` declared on the root element.** The `<value>` elements use `xsi:type="xsd:double|string|boolean"`; if the root `<CustomMetadata>` declares only `xmlns` and `xmlns:xsi` (missing `xmlns:xsd="http://www.w3.org/2001/XMLSchema"`), the deploy fails with a platform `UNKNOWN_EXCEPTION`. Retrieving a record from the org gives the correct, normalized template (fields alphabetized — ordering is cosmetic).
 
-**Why:** each cost a failed deploy / a reviewer rejection; root causes were org/metadata behavior, not logic bugs.
-**How to apply:** when adding Task/Event fields or CMDT rows in later features, follow these patterns up front and grant FLS before verifying field presence as a non-admin user.
+4. **CMDT/config that references picklist values must match the actual restricted value set (found in 05).** `Sequence_Terminal_Status__mdt` listed Converted/Meeting Booked/Do Not Contact/Replied, but `Target__c.Status__c` is a RESTRICTED picklist whose real values were different (Not Cleared/Conflicted/In-Process/.../Closed) — so updating Status__c to a terminal value threw `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST` and the terminal-stop branch could never fire. Resolution (human decision): add the 4 missing values to the Status__c `valueSetDefinition`. Lesson: when config/CMDT enumerates picklist values, verify they exist in the restricted value set before building logic that sets them.
+
+**Why:** each cost a failed deploy / a reviewer rejection / a blocked feature; root causes were org/metadata behavior, not logic bugs.
+**How to apply:** when adding Task/Event fields or CMDT rows in later features, follow these patterns up front, grant FLS before verifying field presence as a non-admin user, and cross-check CMDT-referenced picklist values against the field's restricted value set.

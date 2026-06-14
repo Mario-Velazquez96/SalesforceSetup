@@ -32,7 +32,7 @@
       "name": "05_terminal_stop_and_guards",
       "description": "TargetTrigger before-update branch (Feature 11): terminal Status__c -> Sequence_Active__c=false + Stop Reason + clear Next_Action_Date, driven by Sequence_Terminal_Status__mdt. Adds a branch to the existing TargetTrigger from 03 (one trigger per object); confirms the manual kill switch.",
       "sdd": true,
-      "status": "spec_ready",
+      "status": "done",
       "depends_on": ["03_event_entry_points"]
     },
     {
