@@ -60,3 +60,27 @@ Carried notes:
 - (b) The BlueSky org has no OrgWideEmailAddress, so the engine resolves OWE by
   DisplayName and degrades gracefully to the running user when none exists —
   intended behavior per R3/R14, not a hardcoded fallback.
+
+## 03_event_entry_points — completed 2026-06-13
+
+Delivered (thin event capture over the engine):
+- TargetTrigger (after-insert) + TargetTriggerHandler — enqueues
+  SequenceStartQueueable, which runs engine step 1 on newly inserted active
+  targets.
+- TaskTrigger (after-update) + TaskTriggerHandler — when a sequence Call N
+  completes on a matching active target, sets
+  Next_Action_Date = now + Days_Until_Next_Email.
+- One trigger per object, logic-free triggers delegating to handlers, static
+  Set<Id> recursion guard, bulkified to 1 query / 1 DML per handler.
+
+Verification: 45/45 feature tests passing; per-class coverage
+TargetTriggerHandler 100%, SequenceStartQueueable 93%, TaskTriggerHandler 88%
+(all >= 85%).
+
+Carried notes:
+- (a) The new after-insert TargetTrigger required test-only fixture changes in
+  02's test classes (SequenceEngineServiceTest, SequenceSelectorsTest,
+  SequenceEmailServiceTest) to insert-inactive-then-activate so the trigger does
+  not perturb those tests. No 02 production logic changed; reviewer confirmed.
+- (b) Stall behavior = leave paused (no fallback timer) for call-driven steps,
+  and the next-email send remains deferred to 04_scheduler_batch.

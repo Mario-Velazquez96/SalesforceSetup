@@ -18,7 +18,7 @@
       "name": "03_event_entry_points",
       "description": "TargetTrigger after-insert + SequenceStartQueueable (start step 1); TaskTrigger after-update + handler (sequence Call complete -> set Next_Action_Date = now + Days_Until_Next_Email). Thin event capture over the engine.",
       "sdd": true,
-      "status": "spec_ready",
+      "status": "done",
       "depends_on": ["02_core_engine"]
     },
     {

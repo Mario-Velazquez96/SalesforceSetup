@@ -18,15 +18,21 @@ private class SequenceEngineServiceTest {
         );
         insert con;
 
+        // Insert INACTIVE so the TargetTrigger after-insert start path (feature
+        // 03) does not enqueue the start queueable and create extra artifacts
+        // during these direct-engine tests; then activate via update (the
+        // after-insert branch does not re-fire on update). Persisted values match.
         Target__c t = new Target__c(
             Name = 'Engine Target',
             Company_Name__c = acc.Id,
             Primary_Contact__c = con.Id,
-            Sequence_Active__c = true,
+            Sequence_Active__c = false,
             Sequence_Step__c = 0,
             Days_Until_Next_Email__c = 4
         );
         insert t;
+        t.Sequence_Active__c = true;
+        update t;
     }
 
     private static Target__c reload(Id targetId) {
@@ -157,12 +163,17 @@ private class SequenceEngineServiceTest {
                 Name = 'Bulk ' + i,
                 Company_Name__c = acc.Id,
                 Primary_Contact__c = con.Id,
-                Sequence_Active__c = true,
+                Sequence_Active__c = false,
                 Sequence_Step__c = 0,
                 Days_Until_Next_Email__c = 4
             ));
         }
+        // Inactive insert avoids the feature-03 start queueable; activate after.
         insert targets;
+        for (Target__c t : targets) {
+            t.Sequence_Active__c = true;
+        }
+        update targets;
 
         List<SequenceEngineService.StepRequest> requests =
             new List<SequenceEngineService.StepRequest>();
@@ -239,13 +250,17 @@ private class SequenceEngineServiceTest {
         Contact con = [SELECT Id FROM Contact LIMIT 1];
         Target__c active = new Target__c(
             Name = 'Active', Company_Name__c = acc.Id, Primary_Contact__c = con.Id,
-            Sequence_Active__c = true, Sequence_Step__c = 0, Days_Until_Next_Email__c = 4
+            Sequence_Active__c = false, Sequence_Step__c = 0, Days_Until_Next_Email__c = 4
         );
         Target__c inactive = new Target__c(
             Name = 'Inactive', Company_Name__c = acc.Id, Primary_Contact__c = con.Id,
             Sequence_Active__c = false, Sequence_Step__c = 0, Days_Until_Next_Email__c = 4
         );
+        // Inactive insert avoids the feature-03 start queueable; activate the
+        // one that must be processed after insert.
         insert new List<Target__c>{ active, inactive };
+        active.Sequence_Active__c = true;
+        update active;
 
         Test.startTest();
         SequenceEngineService.processSteps(new List<SequenceEngineService.StepRequest>{

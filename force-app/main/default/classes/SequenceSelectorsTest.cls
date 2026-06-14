@@ -12,12 +12,18 @@ private class SequenceSelectorsTest {
             FirstName = 'Lee', LastName = 'Contact', Email = 'lee@example.com', AccountId = acc.Id
         );
         insert con;
+        // Insert INACTIVE so the TargetTrigger after-insert start path (feature
+        // 03) does not enqueue the start queueable and perturb these selector
+        // fixtures; then activate via update (which does not fire the
+        // after-insert branch). The persisted field values are identical.
         Target__c t = new Target__c(
             Name = 'Sel Target', Company_Name__c = acc.Id, Primary_Contact__c = con.Id,
-            Sequence_Active__c = true, Sequence_Step__c = 3, Days_Until_Next_Email__c = 4,
+            Sequence_Active__c = false, Sequence_Step__c = 3, Days_Until_Next_Email__c = 4,
             Next_Action_Date__c = Datetime.now().addDays(-1)
         );
         insert t;
+        t.Sequence_Active__c = true;
+        update t;
     }
 
     @IsTest

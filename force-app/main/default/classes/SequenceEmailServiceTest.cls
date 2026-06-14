@@ -17,15 +17,21 @@ private class SequenceEmailServiceTest {
         );
         insert con;
 
+        // Insert INACTIVE so the TargetTrigger after-insert start path (feature
+        // 03) does not enqueue the start queueable (which would send an email at
+        // Test.stopTest and break the email-invocation assertions); activate via
+        // update afterward. Persisted field values are identical.
         Target__c t = new Target__c(
             Name = 'Acme Target',
             Company_Name__c = acc.Id,
             Primary_Contact__c = con.Id,
-            Sequence_Active__c = true,
+            Sequence_Active__c = false,
             Sequence_Step__c = 0,
             Days_Until_Next_Email__c = 4
         );
         insert t;
+        t.Sequence_Active__c = true;
+        update t;
     }
 
     private static Target__c getTarget() {

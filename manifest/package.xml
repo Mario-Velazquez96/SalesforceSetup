@@ -62,7 +62,17 @@
 		<members>SequenceEmailServiceTest</members>
 		<members>SequenceEngineServiceTest</members>
 		<members>SequenceSelectorsTest</members>
+		<members>TargetTriggerHandler</members>
+		<members>TaskTriggerHandler</members>
+		<members>SequenceStartQueueable</members>
+		<members>TargetTriggerHandlerTest</members>
+		<members>TaskTriggerHandlerTest</members>
 		<name>ApexClass</name>
+	</types>
+	<types>
+		<members>TargetTrigger</members>
+		<members>TaskTrigger</members>
+		<name>ApexTrigger</name>
 	</types>
 	<types>
 		<members>Sequence_Step_Config.Step_1</members>
