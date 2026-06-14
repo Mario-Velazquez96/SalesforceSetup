@@ -84,3 +84,20 @@ Carried notes:
   not perturb those tests. No 02 production logic changed; reviewer confirmed.
 - (b) Stall behavior = leave paused (no fallback timer) for call-driven steps,
   and the next-email send remains deferred to 04_scheduler_batch.
+
+## 04_scheduler_batch — completed 2026-06-13
+
+Delivered (one scheduled job that drives all time-based progression):
+- SequenceSchedulerBatch — `Database.Batchable<sObject>` + `Database.Stateful`.
+  `start()` returns a `Database.QueryLocator` for active targets with
+  `Next_Action_Date__c <= now` and `Sequence_Step__c < 10`, `WITH USER_MODE`
+  (Batch QueryLocator, exempt from the selective-query rule — no custom index).
+  `execute()` advances each due target through the engine to step+1 with one
+  DML per object. `finish()` reports the stateful processed/error counts.
+- SequenceSchedulerSchedulable — `Schedulable` that runs the batch at scope 200;
+  CRON helper for every 8 hours `0 0 0,8,16 * * ?`.
+- This single job realizes both the 4-day call waits (feature 03) and the
+  14/7/14/14 email timers (feature 02).
+
+Verification: 11/11 tests passing; per-class coverage SequenceSchedulerBatch 96%
+and SequenceSchedulerSchedulable 100% (both above the >= 85% gate).

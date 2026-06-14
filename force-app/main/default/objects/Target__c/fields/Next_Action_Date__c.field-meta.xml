@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Next_Action_Date__c</fullName>
-    <description>Scheduler due-date for the next cadence action. Indexed for the selective batch query. (R5, R15)</description>
+    <description>Due date/time that the scheduler batch (04) uses to select active targets for the next step.</description>
     <externalId>false</externalId>
     <label>Next Action Date</label>
     <required>false</required>

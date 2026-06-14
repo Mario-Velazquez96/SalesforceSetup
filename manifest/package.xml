@@ -67,6 +67,9 @@
 		<members>SequenceStartQueueable</members>
 		<members>TargetTriggerHandlerTest</members>
 		<members>TaskTriggerHandlerTest</members>
+		<members>SequenceSchedulerBatch</members>
+		<members>SequenceSchedulerSchedulable</members>
+		<members>SequenceSchedulerBatchTest</members>
 		<name>ApexClass</name>
 	</types>
 	<types>

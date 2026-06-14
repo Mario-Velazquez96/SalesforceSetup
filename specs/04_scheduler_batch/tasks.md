@@ -2,18 +2,18 @@
 
 > Each task cites the requirement(s) it satisfies. Mark `[x]` as completed.
 
-- [ ] Build `SequenceSchedulerBatch` implementing `Database.Batchable<sObject>` + `Database.Stateful` (R1)
-- [ ] Implement `start` → selective `QueryLocator`: active, `Next_Action_Date__c <= now`, `Sequence_Step__c < 10`, USER_MODE (R2, R8)
-- [ ] Implement `execute` → engine `processSteps(step+1)`, one DML per object (R3, R6)
-- [ ] Rely on the engine kill-switch guard for targets deactivated mid-run (R5)
-- [ ] Implement `finish` → stateful counts + optional admin error summary (R1)
-- [ ] Build `SequenceSchedulerSchedulable` → `executeBatch(scope 200)` (R4)
-- [ ] Provide CRON scheduling helper/instructions — **every 8 hours `0 0 0,8,16 * * ?`** (runs 00:00/08:00/16:00) (R4)
+- [x] Build `SequenceSchedulerBatch` implementing `Database.Batchable<sObject>` + `Database.Stateful` (R1)
+- [x] Implement `start` → selective `QueryLocator`: active, `Next_Action_Date__c <= now`, `Sequence_Step__c < 10`, USER_MODE (R2, R8)
+- [x] Implement `execute` → engine `processSteps(step+1)`, one DML per object (R3, R6)
+- [x] Rely on the engine kill-switch guard for targets deactivated mid-run (R5)
+- [x] Implement `finish` → stateful counts + optional admin error summary (R1)
+- [x] Build `SequenceSchedulerSchedulable` → `executeBatch(scope 200)` (R4)
+- [x] Provide CRON scheduling helper/instructions — **every 8 hours `0 0 0,8,16 * * ?`** (runs 00:00/08:00/16:00) (R4)
 - [x] Decided: **every 8 hours** schedule (revised 2026-06-13, supersedes prior daily decision); email volume confirmed **under** the 5,000/day cap (open items resolved)
-- [ ] Write `SequenceSchedulerBatchTest`: step 6 + past date → advance to 7; future date → unchanged; inactive → unchanged (R2, R3, R5)
-- [ ] Write the 6→10 walk test (run batch ×4) verifying 14/7/14/14 (R3)
-- [ ] Write 200-record bulk test: one DML per object, no governor errors (R6)
-- [ ] Run tests; confirm **>= 85%** coverage; deploy-validate
+- [x] Write `SequenceSchedulerBatchTest`: step 6 + past date → advance to 7; future date → unchanged; inactive → unchanged (R2, R3, R5)
+- [x] Write the 6→10 walk test (run batch ×4) verifying 14/7/14/14 (R3)
+- [x] Write 200-record bulk test: one DML per object, no governor errors (R6)
+- [x] Run tests; confirm **>= 85%** coverage; deploy-validate
 
 ## Verification
 

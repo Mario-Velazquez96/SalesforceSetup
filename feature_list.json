@@ -25,7 +25,7 @@
       "name": "04_scheduler_batch",
       "description": "SequenceSchedulerBatch (Batchable+Stateful) selects active targets where Next_Action_Date <= now and step < 10 and advances each via processStep(step+1); SequenceSchedulerSchedulable runs it daily. One job realizes both the 4-day call waits and the 14/7/14/14 timers.",
       "sdd": true,
-      "status": "spec_ready",
+      "status": "done",
       "depends_on": ["02_core_engine"]
     },
     {
