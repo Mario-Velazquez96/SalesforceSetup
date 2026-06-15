@@ -151,3 +151,80 @@ Verification: 9/9 Apex tests passing with `SequenceAttachmentController` at 89% 
 
 Closes the loop with feature 02, whose engine already attaches
 `Sequence_Attachment_Id__c` at send time.
+
+## Bug fixes
+
+- 2026-06-13: Sequence_Email_1 contact merge field changed from
+  `{{{Primary_Contact__r.FirstName}}}` to `{{{Contact.FirstName}}}` and deployed
+  to BlueSky (0 errors), bringing Email_1 in line with Sequence_Email_2..10.
+  RENDER NOT VERIFIED — see open issue below.
+
+### OPEN ISSUE (escalate): triple-brace HML does not resolve in these templates
+
+Render verification via `Messaging.renderStoredEmailTemplate(templateId,
+contactId, targetId)` did NOT resolve the merge field after the fix. Email_1
+still rendered the LITERAL `Hi {{{Contact.FirstName}}},` (test Contact FirstName
+= "D"). Critically, Sequence_Email_2 — assumed in the bug report to already
+render correctly — ALSO rendered the literal `{{{Contact.FirstName}}},` under the
+exact same call, so this is NOT an Email_1-specific outlier.
+
+Root cause is a template-type/HML mismatch affecting ALL ten Sequence_Email
+templates: their `-meta.xml` is `<type>custom</type>` / `<uiType>Aloha</uiType>`
+(Classic Aloha), but the triple-brace `{{{...}}}` syntax is Lightning
+(enhanced) email-template HML and does not resolve when a Classic `custom`
+template is rendered via `renderStoredEmailTemplate`. The Email_1 field name is
+now consistent with its siblings, but no Sequence_Email template currently
+merges the recipient name at send time. Needs a leader/spec decision (convert
+the templates to enhanced/Lightning type, or switch to Visualforce-style merge
+fields valid for Aloha custom templates) before send-time personalization works.
+
+### RESOLVED (2026-06-13): converted the 10 Sequence_Email templates Classic (Aloha) -> Lightning (SFX)
+
+Per human decision (Option B), the 10 cadence templates were converted from
+Classic (`type=custom` / `uiType=Aloha`) to Lightning (`uiType=SFX`,
+`relatedEntityType=Contact`) so the triple-brace `{{{...}}}` HML resolves under
+`Messaging.renderStoredEmailTemplate`.
+
+Folder fix (the original 01 blocker "uiType=SFX + a classic EmailFolder did not
+resolve the folder on deploy"): an SFX template CANNOT live in a Classic
+`EmailFolder` (Folder `Type='Email'`) — deploy fails with
+`Cannot find folder:Sequence_Emails`. Lightning templates require an ENHANCED
+folder, which in metadata is a different type, `EmailTemplateFolder`
+(`Type='EmailTemplate'`, with a `<folderShares>` block), NOT `EmailFolder`. The
+pre-existing Classic `Sequence_Emails` folder could not be converted in place
+(it kept `Type='Email'`), so the templates were moved to a NEW enhanced folder
+`Sequence_Lightning_Emails` (`EmailTemplateFolder`). Template DeveloperNames are
+unchanged (`Sequence_Email_1..10`), so `SequenceEmailService` still resolves them
+by name — only `FolderName` changed, which the engine does not use. The 10 old
+Aloha templates were first deleted via destructiveChanges (UiType cannot be
+changed on an existing template: `You can set a UiType value only while creating
+an email template`), then recreated fresh as SFX in the new folder.
+
+Final WORKING merge-token form (determined EMPIRICALLY via a deployed probe
+template rendered with `renderStoredEmailTemplate(tplId, contactId, targetId)`;
+recipient = Contact via targetObjectId, related = Target__c via whatId):
+- Contact first name: `{{{Recipient.FirstName}}}`
+  (NOTE: `{{{Contact.FirstName}}}` THROWS
+  `EMAIL_TEMPLATE_MERGEFIELD_ERROR: We don't recognize the field prefix Contact`
+  under SFX — the old Aloha token is invalid for Lightning rendering.)
+- Target name: `{{{Target__c.Name}}}`
+- Target billing city: `{{{Target__c.Billing_City__c}}}` (the formula field that
+  pulls `Company_Name__r.BillingCity`).
+Applied consistently: all 10 bodies use `{{{Recipient.FirstName}}}`; all 10
+subjects use `Interest in {{{Target__c.Name}}}`; Email_3 additionally uses
+`{{{Target__c.Name}}}` + `{{{Target__c.Billing_City__c}}}` in its body. No
+`Primary_Contact__r` traversal remains.
+
+Render-verification result (real test data: Contact FirstName=Marcus,
+Target Name=Riverside HVAC LLC, Billing City=Cleveland; temp records deleted):
+- Email_1 subject -> `Interest in Riverside HVAC LLC`; greeting -> `Hi Marcus,`;
+  no literal `{{{...}}}`.
+- Email_3 greeting -> `Marcus,`; body -> `They view Riverside HVAC LLC as a
+  top-tier platform in Cleveland`; both Target name and billing city resolved;
+  no literal `{{{...}}}`.
+
+Deploy: all 10 templates + the `Sequence_Lightning_Emails` EmailTemplateFolder
+deployed to BlueSky with 0 errors. Send path re-verified: `SequenceEmailServiceTest`
+11/11 passing, `SequenceEmailService` coverage 97% (>= 85% gate). The engine and
+all Apex/trigger/LWC logic were left unchanged. The OPEN ISSUE above is now
+resolved.

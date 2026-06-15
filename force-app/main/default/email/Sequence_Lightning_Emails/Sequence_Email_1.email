@@ -1,5 +1,5 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body>
-<p>Hi {{{Contact.FirstName}}},</p>
+<p>Hi {{{Recipient.FirstName}}},</p>
 <p>Hope all is well and the business is off to a strong start.</p>
 <p>I’m following up on a recent mailer we sent (attached) regarding a compelling opportunity with our client Atrium Home Services, a people-first, fast-growing residential HVAC, plumbing, and electrical services company with a strong Midwest footprint.</p>
 <p>Atrium is actively seeking to partner with top residential service providers as part of its strategic growth efforts. As their exclusive buy-side advisor, we’re reaching out to owners who may be open to exploring a value-driven, flexible partnership.</p>
