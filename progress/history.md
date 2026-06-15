@@ -244,3 +244,25 @@ the Target's owner, runs the engine, and asserts both created Tasks have
 `OwnerId` == the Target owner and NOT the running user. All 48 tests across
 SequenceEngineServiceTest / TargetTriggerHandlerTest / TaskTriggerHandlerTest /
 SequenceSchedulerBatchTest pass; SequenceEngineService coverage 96% (>= 85%).
+
+## Bug fix — 03_event_entry_points call-completion gating (2026-06-15)
+
+Call-completion reschedule is now gated on the matched step's
+`Sequence_Step_Config__mdt.Next_Trigger_Type__c == 'CallCompleted'`. The engine
+creates a `Call N` task on every step, including Timer steps (6–9) where it has
+already set `Next_Action_Date__c = now + Next_Wait_Days__c` (14/7/14/14).
+Previously `TaskTriggerHandler.afterUpdate` rescheduled on ANY completed
+sequence Call matching the target's step, so completing the Call on a Timer step
+clobbered the engine-set 14-day timer with the 4-day call wait. Fix: the handler
+reads the step-config map once (`SequenceStepConfigService.getByStep()`, one read,
+still one DML) and only sets `Next_Action_Date__c = now + Days_Until_Next_Email__c`
+when the matched step config's `Next_Trigger_Type__c == 'CallCompleted'`; Timer/None
+steps (or a missing config) are a no-op so the engine-set wait governs. Existing
+guards (R5 non-sequence, R6 inactive/step-mismatch, R7 recursion) unchanged.
+Spec refined: R4 now requires `Next_Trigger_Type__c == 'CallCompleted'`; new R10
+makes Timer/None steps a no-op on call completion. New test
+`testTimerStepCallCompleteLeavesDateUnchanged` (step 6, Timer) seeds
+`Next_Action_Date__c ≈ now+14` and asserts it is UNCHANGED after the matching
+Call 6 completes (not overwritten with now + Days_Until_Next_Email). All 38 tests
+across TaskTriggerHandlerTest / TargetTriggerHandlerTest / SequenceSchedulerBatchTest
+pass (0 failures); TaskTriggerHandler coverage 89% (51/57 lines, >= 85%).

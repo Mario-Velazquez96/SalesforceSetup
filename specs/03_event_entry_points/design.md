@@ -35,14 +35,20 @@ classes/
 > to *this* `TargetTrigger`/`TargetTriggerHandler`. Do not create a second trigger
 > (slicing-guide). Route by `Trigger.operationType` in the handler.
 
-## TaskTrigger (after-update) → set Next_Action_Date (R4–R6)
+## TaskTrigger (after-update) → set Next_Action_Date (R4–R6, R10)
 
 - `afterUpdate`: filter Tasks where `Status` changed to `Completed` **and**
   `Is_Sequence_Call__c=true` (R5 excludes logged Email activities, which have it false).
 - Collect `WhatId` (Target Ids) + each Task's `Sequence_Step__c`; one query via
   `TargetSelector` for those Targets (active, with `Sequence_Step__c`,
   `Days_Until_Next_Email__c`).
-- For each Target where active (R6) and `Sequence_Step__c == task.Sequence_Step__c`, set
+- For each candidate, read the matched step's `Sequence_Step_Config__mdt` (via
+  `SequenceStepConfigService`, keyed by the Task's `Sequence_Step__c`) and **only** proceed
+  when `Next_Trigger_Type__c == 'CallCompleted'`. Timer/None steps are a no-op (R10): the
+  engine has already set `Next_Action_Date__c = now + Next_Wait_Days__c` and that timer
+  must govern — completing the Call on such a step must not overwrite it.
+- For each Target where active (R6), `Sequence_Step__c == task.Sequence_Step__c`, **and**
+  the matched step is `CallCompleted`, set
   `Next_Action_Date__c = Datetime.now().addDays(Integer.valueOf(Days_Until_Next_Email__c))`
   (R4). One Target update (R8).
 
@@ -65,7 +71,8 @@ classes/
   `Test.stopTest`) step-1 artifacts exist. Insert inactive → nothing.
 - `TaskTriggerHandlerTest`: complete a matching `Call 1` task → `Next_Action_Date__c` set
   (≈ now + `Days_Until_Next_Email__c`); complete a non-sequence task → unchanged (R5);
-  inactive target → unchanged (R6); step mismatch → unchanged.
+  inactive target → unchanged (R6); step mismatch → unchanged; complete a Call on a Timer
+  step (e.g. step 6) → `Next_Action_Date__c` unchanged (R10).
 - **Bulk:** 200 inserts and 200 task completions — one DML per object, no governor errors.
 - `@testSetup`, `Test.startTest/stopTest` (forces queueable to run); email in test context.
 - Coverage target **>= 85%** (handlers/queueable).
@@ -75,3 +82,8 @@ classes/
 - **Stall behavior = leave paused** (confirmed 2026-06-12). Call-driven steps pause until
   the call completes; **no fallback timer** is implemented. The `CallCompleted` path simply
   leaves `Next_Action_Date__c` null until the rep completes the call.
+- **Call-completion reschedule gated on `Next_Trigger_Type__c` (2026-06-15).** Call tasks
+  exist on every step, including Timer steps (6–9). `TaskTriggerHandler` must read
+  `Sequence_Step_Config__mdt` (via `SequenceStepConfigService`) for the matched step and
+  only reschedule when `Next_Trigger_Type__c == 'CallCompleted'`; otherwise it is a no-op
+  so the engine-set timer is not overwritten (R4, R10).

@@ -8,6 +8,7 @@
 - [x] Create `TaskTrigger` (after update) delegating to `TaskTriggerHandler`; reuse existing Task trigger if present (R9)
 - [x] Implement `TaskTriggerHandler.afterUpdate`: filter completed sequence calls, set `Next_Action_Date__c = now + Days_Until_Next_Email__c` on matching active targets (R4)
 - [x] Exclude non-sequence tasks and inactive/step-mismatch targets (R5, R6)
+- [x] Gate the call-completion reschedule on `Next_Trigger_Type__c == 'CallCompleted'` (Timer/None steps: no-op) (R4, R10)
 - [x] Add static `Set<Id>` recursion guards in both handlers (R7)
 - [x] Bulkify: one query for related targets, one DML per handler (R8)
 - [x] Stall behavior decided: **leave paused** (no fallback timer) — `CallCompleted` steps wait on the rep completing the call
@@ -24,6 +25,8 @@
   `Days_Until_Next_Email__c`; assert **no** new email yet.
 - **R5:** complete a `Task` with `Is_Sequence_Call__c=false` → target unchanged.
 - **R6:** inactive target's call completed → `Next_Action_Date__c` unchanged.
+- **R10:** complete a sequence Call on a **Timer** step (e.g. step 6) → `Next_Action_Date__c`
+  unchanged (the engine-set 14-day timer stands, not overwritten by the 4-day call wait).
 - **One-trigger-per-object:** confirm only one `TargetTrigger` and one `TaskTrigger` exist.
 
 > Coverage target: **>= 85%** for handlers + queueable.

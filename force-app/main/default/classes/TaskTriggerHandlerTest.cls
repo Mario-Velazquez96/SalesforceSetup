@@ -148,6 +148,41 @@ private class TaskTriggerHandlerTest {
     }
 
     @IsTest
+    static void testTimerStepCallCompleteLeavesDateUnchanged() {
+        // R10: step 6 is a Timer step (Next_Trigger_Type__c='Timer'). The engine
+        // already set Next_Action_Date__c = now + Next_Wait_Days__c (14). The
+        // engine still creates a Call 6 task; completing it must NOT overwrite
+        // the engine-set 14-day timer with the 4-day call wait.
+        Target__c t = insertTarget('Timer', true, 6);
+        Datetime engineTimer = Datetime.now().addDays(14);
+        t.Next_Action_Date__c = engineTimer; // simulate the engine's timer
+        update t;
+
+        Task call = newCallTask(t.Id, 6, true); // matching Call on the Timer step
+        insert call;
+
+        Test.startTest();
+        call.Status = 'Completed';
+        update call; // fires after-update; R10 -> no-op for Timer steps
+        Target__c after = reload(t.Id);
+        // Assert the date is UNCHANGED (still ~now+14, NOT now+Days_Until_Next_Email).
+        Assert.isNotNull(after.Next_Action_Date__c, 'Timer date still present (R10)');
+        Long diffFromTimerMs = Math.abs(after.Next_Action_Date__c.getTime() - engineTimer.getTime());
+        Assert.isTrue(
+            diffFromTimerMs < 5L * 60L * 1000L,
+            'Timer-step Next_Action_Date unchanged (~now+14, engine timer stands) (R10)'
+        );
+        // Prove it was NOT rewritten to the 4-day call wait.
+        Datetime callWait = Datetime.now().addDays(WAIT_DAYS);
+        Long diffFromCallWaitMs = Math.abs(after.Next_Action_Date__c.getTime() - callWait.getTime());
+        Assert.isTrue(
+            diffFromCallWaitMs > 5L * 60L * 1000L,
+            'Timer date was NOT overwritten with now + Days_Until_Next_Email (R10)'
+        );
+        Test.stopTest();
+    }
+
+    @IsTest
     static void testStepMismatchDoesNothing() {
         Target__c t = insertTarget('Mismatch', true, 2); // target on step 2
         Task call = newCallTask(t.Id, 1, true); // call for step 1 — mismatch

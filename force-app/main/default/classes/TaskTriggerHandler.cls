@@ -63,7 +63,12 @@ public with sharing class TaskTriggerHandler {
             return;
         }
 
-        // 3) Build the single update set (R4, R6, R7).
+        // 3) Read all step configs once (R8) so the per-Target loop stays
+        //    SOQL-free; custom metadata is cached by the service.
+        Map<Integer, Sequence_Step_Config__mdt> configByStep =
+            SequenceStepConfigService.getByStep();
+
+        // 4) Build the single update set (R4, R6, R7, R10).
         List<Target__c> toUpdate = new List<Target__c>();
         for (Target__c target : targets) {
             if (processedTargetIds.contains(target.Id)) {
@@ -77,6 +82,15 @@ public with sharing class TaskTriggerHandler {
             if (taskStep == null || target.Sequence_Step__c != taskStep) {
                 continue;
             }
+            // R4/R10: only reschedule when the matched step is a CallCompleted
+            // step. Timer/None steps (or a missing config) are a no-op — the
+            // engine already set Next_Action_Date__c = now + Next_Wait_Days__c
+            // and that timer must not be clobbered by the call wait.
+            Sequence_Step_Config__mdt stepConfig =
+                configByStep.get(Integer.valueOf(target.Sequence_Step__c));
+            if (stepConfig == null || stepConfig.Next_Trigger_Type__c != 'CallCompleted') {
+                continue; // R10: Timer/None step -> leave engine-set date intact
+            }
             Integer waitDays = target.Days_Until_Next_Email__c == null
                 ? 0
                 : Integer.valueOf(target.Days_Until_Next_Email__c);
@@ -85,7 +99,7 @@ public with sharing class TaskTriggerHandler {
             toUpdate.add(target);
         }
 
-        // 4) One DML (R8).
+        // 5) One DML (R8).
         if (!toUpdate.isEmpty()) {
             List<Database.SaveResult> results =
                 Database.update(toUpdate, false, AccessLevel.USER_MODE);
