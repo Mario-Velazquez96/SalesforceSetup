@@ -70,7 +70,20 @@
 		<members>SequenceSchedulerBatch</members>
 		<members>SequenceSchedulerSchedulable</members>
 		<members>SequenceSchedulerBatchTest</members>
+		<members>SequenceAttachmentController</members>
+		<members>SequenceAttachmentControllerTest</members>
 		<name>ApexClass</name>
+	</types>
+	<types>
+		<members>targetEmailAttachment</members>
+		<name>LightningComponentBundle</name>
+	</types>
+	<types>
+		<members>Sequence_Attachment_Invalid_Input</members>
+		<members>Sequence_Attachment_Upload_Success</members>
+		<members>Sequence_Attachment_Remove_Success</members>
+		<members>Sequence_Attachment_Error_Title</members>
+		<name>CustomLabel</name>
 	</types>
 	<types>
 		<members>TargetTrigger</members>

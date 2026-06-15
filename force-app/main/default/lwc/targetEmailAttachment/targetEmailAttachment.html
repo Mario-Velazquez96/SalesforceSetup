@@ -1,0 +1,45 @@
+<template>
+    <lightning-card title="Sequence Email Attachment" icon-name="standard:file">
+        <div class="slds-p-horizontal_small slds-is-relative">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={hasAttachment}>
+                <div class="slds-grid slds-grid_vertical-align-center slds-gutters_small">
+                    <div class="slds-col slds-grow">
+                        <lightning-icon
+                            icon-name="doctype:attachment"
+                            size="small"
+                            class="slds-m-right_x-small"
+                        ></lightning-icon>
+                        <span class="slds-text-body_regular">{fileName}</span>
+                    </div>
+                    <div class="slds-col slds-no-flex">
+                        <lightning-button
+                            label="Remove"
+                            variant="destructive-text"
+                            icon-name="utility:delete"
+                            onclick={handleRemove}
+                            disabled={isLoading}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </template>
+
+            <template lwc:else>
+                <p class="slds-text-color_weak slds-m-bottom_small">
+                    No file attached. Sequence emails will send with no attachment.
+                </p>
+                <lightning-file-upload
+                    label="Upload sequence attachment"
+                    name="sequenceAttachmentUploader"
+                    record-id={recordId}
+                    multiple="false"
+                    onuploadfinished={handleUploadFinished}
+                    disabled={isLoading}
+                ></lightning-file-upload>
+            </template>
+        </div>
+    </lightning-card>
+</template>

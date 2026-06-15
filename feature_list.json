@@ -39,7 +39,7 @@
       "name": "06_lwc_attachment",
       "description": "targetEmailAttachment LWC + SequenceAttachmentController: single-file upload on the Target__c record page that stores the ContentDocumentId in Sequence_Attachment_Id__c for the engine to attach; Remove clears it; blank = no attachment.",
       "sdd": true,
-      "status": "spec_ready",
+      "status": "done",
       "depends_on": ["01_data_model"]
     }
   ]

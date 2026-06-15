@@ -130,3 +130,24 @@ Carried note (R8 added mid-flight):
   set (deployed), while the CMDT terminal set was kept as exactly those 4 and the
   existing client statuses were left non-terminal. This was a data-model gap
   carried from feature 01, resolved within feature 05.
+
+## 06_lwc_attachment — completed 2026-06-13
+
+Delivered (rep-facing single-file upload UI; final feature — closes the loop with 02):
+- LWC `targetEmailAttachment` on the `Target__c` record page — `lightning-file-upload`
+  (single file), current-file row rendered via `lwc:if`, a Remove button,
+  `lightning-spinner`, and `ShowToastEvent` toasts. Handlers use imperative Apex with
+  `async/await` + `try/catch/finally` and call `refreshApex` after each mutation.
+- `SequenceAttachmentController` (`with sharing`): `getCurrentAttachment` (cacheable,
+  `@wire`); `setAttachment` stores the `ContentDocumentId` in `Sequence_Attachment_Id__c`
+  with single-file replacement (deletes the prior link before repointing);
+  `removeAttachment` clears the field and unlinks the prior `ContentDocumentLink`.
+  CRUD/FLS enforced via `USER_MODE`.
+- `SequenceAttachmentController` class access added to the `Login_Sequence_User`
+  permission set.
+
+Verification: 9/9 Apex tests passing with `SequenceAttachmentController` at 89% coverage
+(>= 85% gate), and Jest 6/6 green (the only feature with a Jest suite).
+
+Closes the loop with feature 02, whose engine already attaches
+`Sequence_Attachment_Id__c` at send time.

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>Sequence_Attachment_Invalid_Input</fullName>
+        <categories>Sequence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sequence Attachment Invalid Input</shortDescription>
+        <value>A record and a file are required to update the sequence attachment.</value>
+    </labels>
+    <labels>
+        <fullName>Sequence_Attachment_Upload_Success</fullName>
+        <categories>Sequence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sequence Attachment Upload Success</shortDescription>
+        <value>Attachment saved. It will be added to every sequence email.</value>
+    </labels>
+    <labels>
+        <fullName>Sequence_Attachment_Remove_Success</fullName>
+        <categories>Sequence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sequence Attachment Remove Success</shortDescription>
+        <value>Attachment removed. Sequence emails will send with no attachment.</value>
+    </labels>
+    <labels>
+        <fullName>Sequence_Attachment_Error_Title</fullName>
+        <categories>Sequence</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sequence Attachment Error Title</shortDescription>
+        <value>Something went wrong</value>
+    </labels>
+</CustomLabels>

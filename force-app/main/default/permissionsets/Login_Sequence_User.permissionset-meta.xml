@@ -3,6 +3,10 @@
     <label>Login Sequence User</label>
     <description>FLS read/edit on the cadence fields added in 01_data_model. Apex class access is added by later features as their classes deploy.</description>
     <hasActivationRequired>false</hasActivationRequired>
+    <classAccesses>
+        <apexClass>SequenceAttachmentController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <fieldPermissions>
         <field>Target__c.Sequence_Active__c</field>
         <editable>true</editable>
