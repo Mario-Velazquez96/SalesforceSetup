@@ -43,7 +43,8 @@ public with sharing class SequenceSchedulerBatch
         return Database.getQueryLocator(
             'SELECT Id, Name, Sequence_Active__c, Sequence_Step__c, ' +
             'Days_Until_Next_Email__c, Sequence_Stop_Reason__c, Next_Action_Date__c, ' +
-            'Primary_Contact__c, Sequence_Attachment_Id__c, Status__c, Billing_City__c ' +
+            'Primary_Contact__c, Sequence_Attachment_Id__c, Status__c, Billing_City__c, ' +
+            'OwnerId ' +
             'FROM Target__c ' +
             'WHERE Sequence_Active__c = true ' +
             'AND Next_Action_Date__c != null ' +
@@ -66,6 +67,7 @@ public with sharing class SequenceSchedulerBatch
         List<SequenceEngineService.StepRequest> requests =
             new List<SequenceEngineService.StepRequest>();
         for (Target__c t : scope) {
+            System.debug('processing target ' + t.Id + ' - ' + t.Name);
             Integer current = t.Sequence_Step__c == null
                 ? 0
                 : Integer.valueOf(t.Sequence_Step__c);
@@ -76,6 +78,7 @@ public with sharing class SequenceSchedulerBatch
             SequenceEngineService.processSteps(requests);
             totalProcessed += requests.size();
         } catch (Exception e) {
+            System.debug('Error processing targets: ' + e.getMessage());
             totalErrors += requests.size();
             errorMessages.add(e.getMessage());
         }

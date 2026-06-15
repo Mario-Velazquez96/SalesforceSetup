@@ -94,12 +94,15 @@ public with sharing class SequenceEngineService {
 
         // One DML per object. (R12)
         if (!emailRequests.isEmpty()) {
+            System.debug('sending emails' + emailRequests.size());
             SequenceEmailService.send(emailRequests);
         }
         if (!tasksToInsert.isEmpty()) {
+            System.debug('inserting tasks' + tasksToInsert.size());
             insertTasks(tasksToInsert);
         }
         if (!targetsToUpdate.isEmpty()) {
+            system.debug('updating targets' + targetsToUpdate.size());
             updateTargets(targetsToUpdate.values());
         }
     }
@@ -115,6 +118,7 @@ public with sharing class SequenceEngineService {
             : cfg.Call_Task_Subject__c;
         return new Task(
             WhatId = t.Id,
+            OwnerId = t.OwnerId,
             Subject = subject,
             ActivityDate = Date.today().addDays(offset),
             Status = 'Open',
@@ -144,6 +148,7 @@ public with sharing class SequenceEngineService {
     private static Task buildEmailTask(Target__c t, Integer step) {
         Task emailTask = new Task(
             WhatId = t.Id,
+            OwnerId = t.OwnerId,
             Subject = 'Email ' + step,
             Status = 'Completed',
             ActivityDate = Date.today(),

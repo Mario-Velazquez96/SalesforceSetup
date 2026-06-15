@@ -61,7 +61,7 @@ private class SequenceSchedulerBatchTest {
     private static Target__c reload(Id id) {
         return [
             SELECT Id, Name, Sequence_Step__c, Sequence_Active__c, Next_Action_Date__c,
-                   Primary_Contact__c, Sequence_Attachment_Id__c, Days_Until_Next_Email__c
+                   Primary_Contact__c, Sequence_Attachment_Id__c, Days_Until_Next_Email__c, OwnerId
             FROM Target__c WHERE Id = :id
         ];
     }
@@ -239,7 +239,7 @@ private class SequenceSchedulerBatchTest {
         List<Target__c> scope = [
             SELECT Id, Name, Sequence_Active__c, Sequence_Step__c,
                    Days_Until_Next_Email__c, Next_Action_Date__c, Primary_Contact__c,
-                   Sequence_Attachment_Id__c
+                   Sequence_Attachment_Id__c, OwnerId
             FROM Target__c
             WHERE Sequence_Active__c = true AND Sequence_Step__c = 0
             LIMIT 200

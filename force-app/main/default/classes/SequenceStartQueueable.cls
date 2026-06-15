@@ -39,6 +39,7 @@ public with sharing class SequenceStartQueueable implements Queueable {
         }
 
         if (!requests.isEmpty()) {
+            System.debug('sequence processing' + requests.size());
             SequenceEngineService.processSteps(requests); // R2
         }
     }

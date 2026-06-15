@@ -11,7 +11,7 @@ public inherited sharing class TargetSelector {
     private static final String FIELD_LIST =
         'Id, Name, Sequence_Active__c, Sequence_Step__c, Days_Until_Next_Email__c, ' +
         'Sequence_Stop_Reason__c, Next_Action_Date__c, Primary_Contact__c, ' +
-        'Sequence_Attachment_Id__c, Status__c, Billing_City__c';
+        'Sequence_Attachment_Id__c, Status__c, Billing_City__c, OwnerId';
 
     /**
      * Returns the Targets for the given Ids with every engine-referenced field.

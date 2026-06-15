@@ -228,3 +228,19 @@ deployed to BlueSky with 0 errors. Send path re-verified: `SequenceEmailServiceT
 11/11 passing, `SequenceEmailService` coverage 97% (>= 85% gate). The engine and
 all Apex/trigger/LWC logic were left unchanged. The OPEN ISSUE above is now
 resolved.
+
+## Bug fix — 2026-06-13
+
+Engine Tasks now assigned to the Target owner. Root cause: `TargetSelector`
+did not query `Target__c.OwnerId` and `SequenceEngineService` omitted `OwnerId`
+on both Task constructors, so Salesforce defaulted Task.OwnerId to the running
+(system/automated) user when `SequenceSchedulerBatch` ran. Fix: added `OwnerId`
+to the `TargetSelector` field list and set `Task.OwnerId = Target.OwnerId` on
+both the open "Call N" task and the completed "Email N" task. Also added
+`OwnerId` to the inline `SequenceSchedulerBatch.start()` query so the batch
+feeds the engine a Target with its owner populated. A new
+`SequenceEngineServiceTest` test creates a second active user, makes that user
+the Target's owner, runs the engine, and asserts both created Tasks have
+`OwnerId` == the Target owner and NOT the running user. All 48 tests across
+SequenceEngineServiceTest / TargetTriggerHandlerTest / TaskTriggerHandlerTest /
+SequenceSchedulerBatchTest pass; SequenceEngineService coverage 96% (>= 85%).

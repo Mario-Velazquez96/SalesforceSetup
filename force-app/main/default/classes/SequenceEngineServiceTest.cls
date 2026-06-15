@@ -41,14 +41,14 @@ private class SequenceEngineServiceTest {
         return [
             SELECT Id, Name, Sequence_Step__c, Next_Action_Date__c, Sequence_Active__c,
                    Primary_Contact__c, Sequence_Attachment_Id__c, Days_Until_Next_Email__c,
-                   Status__c, Billing_City__c
+                   Status__c, Billing_City__c, OwnerId
             FROM Target__c WHERE Id = :targetId
         ];
     }
 
     private static List<Task> tasksFor(Id targetId) {
         return [
-            SELECT Id, Subject, Status, ActivityDate, Is_Sequence_Call__c, Sequence_Step__c
+            SELECT Id, Subject, Status, ActivityDate, Is_Sequence_Call__c, Sequence_Step__c, OwnerId
             FROM Task WHERE WhatId = :targetId ORDER BY Is_Sequence_Call__c DESC
         ];
     }
@@ -172,6 +172,10 @@ private class SequenceEngineServiceTest {
         insert targets;
         for (Target__c t : targets) {
             t.Sequence_Active__c = true;
+            // Mirror the runtime: the engine reads OwnerId off the in-memory
+            // Target (selectors/batch query it). Populate it so the Task OwnerId
+            // assignment has a value, as production always does.
+            t.OwnerId = UserInfo.getUserId();
         }
         update targets;
 
@@ -199,6 +203,64 @@ private class SequenceEngineServiceTest {
             SELECT COUNT() FROM Task WHERE WhatId IN :targets AND Is_Sequence_Call__c = true
         ];
         Assert.areEqual(200, callTasks, '200 Call tasks created (R12)');
+    }
+
+    @IsTest
+    static void testTasksOwnedByTargetOwnerNotRunningUser() {
+        // Bug fix: engine Tasks must belong to the Target's owner, not the
+        // running/system user. Create a second active user, make that user the
+        // Target's actual owner, run the engine, and assert BOTH created Tasks
+        // carry OwnerId == the Target owner (and NOT UserInfo.getUserId()).
+        // The owner uses the System Administrator profile so the engine's Target
+        // update (an ownership transfer) clears the TRANSFER_REQUIRES_READ check
+        // on the Target's parent records.
+        Profile adminProfile = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
+        String uniqueName = 'engineowner' + System.now().getTime() + '@bluesky.test.example.com';
+        User owner = new User(
+            FirstName = 'Engine',
+            LastName = 'Owner',
+            Alias = 'engown',
+            Email = 'engine.owner@example.com',
+            Username = uniqueName,
+            ProfileId = adminProfile.Id,
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            TimeZoneSidKey = 'America/Denver',
+            IsActive = true
+        );
+        insert owner;
+
+        Assert.areNotEqual(
+            UserInfo.getUserId(), owner.Id,
+            'The new owner must differ from the running user for this assertion to mean anything'
+        );
+
+        // Make the second user the Target's real owner, then reload so the
+        // in-memory Target handed to the engine carries that OwnerId (as the
+        // selector/batch query supplies it at runtime).
+        Target__c t = reload([SELECT Id FROM Target__c LIMIT 1].Id);
+        t.OwnerId = owner.Id;
+        update t;
+        t = reload(t.Id);
+        Assert.areEqual(owner.Id, t.OwnerId, 'Target owner = second user (not running user)');
+
+        Test.startTest();
+        SequenceEngineService.processStep(t, 1);
+        Test.stopTest();
+
+        List<Task> tasks = tasksFor(t.Id);
+        Assert.areEqual(2, tasks.size(), 'Call task + completed Email task created');
+        for (Task tk : tasks) {
+            Assert.areEqual(
+                owner.Id, tk.OwnerId,
+                'Task ' + tk.Subject + ' must be owned by the Target owner, not the running user'
+            );
+            Assert.areNotEqual(
+                UserInfo.getUserId(), tk.OwnerId,
+                'Task ' + tk.Subject + ' must NOT default to the running/system user'
+            );
+        }
     }
 
     @IsTest
@@ -260,6 +322,7 @@ private class SequenceEngineServiceTest {
         // one that must be processed after insert.
         insert new List<Target__c>{ active, inactive };
         active.Sequence_Active__c = true;
+        active.OwnerId = UserInfo.getUserId();
         update active;
 
         Test.startTest();

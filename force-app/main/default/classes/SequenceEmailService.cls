@@ -41,6 +41,7 @@ public with sharing class SequenceEmailService {
         if (messages.isEmpty()) {
             return new List<Messaging.SendEmailResult>();
         }
+        System.debug('built ' + messages.size() + ' email messages to send');
         // allOrNothing = false: partial-success, one bad address won't abort all.
         return Messaging.sendEmail(messages, false);
     }
@@ -99,6 +100,7 @@ public with sharing class SequenceEmailService {
                     Messaging.renderStoredEmailTemplate(templateId, t.Primary_Contact__c, t.Id);
                 String subject = rendered.getSubject();
                 msg.setSubject('RE: ' + (subject == null ? '' : subject)); // R4
+                System.debug('rendered subject: ' + rendered.getSubject());
                 msg.setHtmlBody(rendered.getHtmlBody());
                 msg.setPlainTextBody(rendered.getPlainTextBody());
             } else {
