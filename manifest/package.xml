@@ -101,10 +101,10 @@
 		<members>Sequence_Step_Config.Step_8</members>
 		<members>Sequence_Step_Config.Step_9</members>
 		<members>Sequence_Step_Config.Step_10</members>
-		<members>Sequence_Terminal_Status.Converted</members>
-		<members>Sequence_Terminal_Status.Meeting_Booked</members>
-		<members>Sequence_Terminal_Status.Do_Not_Contact</members>
-		<members>Sequence_Terminal_Status.Replied</members>
+		<members>Sequence_Terminal_Status.Closed</members>
+		<members>Sequence_Terminal_Status.Target_Not_Interested</members>
+		<members>Sequence_Terminal_Status.Client_Not_Interested</members>
+		<members>Sequence_Terminal_Status.Conflicted</members>
 		<name>CustomMetadata</name>
 	</types>
 	<types>

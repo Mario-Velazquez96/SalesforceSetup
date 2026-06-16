@@ -83,6 +83,11 @@ public with sharing class SequenceEmailService {
             }
             Id templateId = templateIdByName.get(cfg.Email_Template_Dev_Name__c);
             if (templateId == null) {
+                System.debug('No template found for developer name: ' + cfg.Email_Template_Dev_Name__c);
+            } else {
+                System.debug('Resolved template Id ' + templateId + ' for developer name: ' + cfg.Email_Template_Dev_Name__c);
+            }
+            if (templateId == null) {
                 continue;
             }
 

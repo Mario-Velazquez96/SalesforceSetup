@@ -11,14 +11,16 @@ handler mutates `Trigger.new` directly, so there's **no extra DML** (Order of Ex
 §4.2). The terminal set is data (`Sequence_Terminal_Status__mdt`), so the stop list is
 admin-tunable.
 
-## Data-model prerequisite (R8)
+## Data-model note (R8)
 
-The `Target__c.Status__c` **restricted** picklist value set must contain the four terminal
-values `Converted`, `Meeting Booked`, `Do Not Contact`, `Replied` (added via the field's
-`valueSetDefinition`). Without them, a restricted-picklist save of a terminal status fails
-(`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`) and R1 is unreachable. The terminal **match**
-itself stays metadata-driven via `Sequence_Terminal_Status__mdt` (R5) — no code or CMDT
-change; only the value set is extended.
+Per the 2026-06-15 client reversal, the terminal set reuses the **existing**
+`Target__c.Status__c` restricted picklist values `Closed`, `Target Not Interested`,
+`Client Not Interested`, `Conflicted`. This feature **does not modify** the `Status__c`
+value set — no values are added (the four previously-added design values are removed
+elsewhere as part of the revert). Because the terminal values already exist in the
+restricted picklist, a save of a terminal status is valid and R1 is reachable. The terminal
+**match** stays metadata-driven via `Sequence_Terminal_Status__mdt` (R5): its rows map each
+of those existing `Status__c` values to a `Stop_Reason__c` — no code change.
 
 ## Class changes (one-trigger-per-object)
 
@@ -67,7 +69,8 @@ classes/
 ## Test approach (§12 steps 5–6)
 
 - `TargetTriggerHandlerTest` (extend from 03): update active target to each terminal
-  status → assert `Sequence_Active__c=false`, correct `Sequence_Stop_Reason__c`,
+  status (`Closed`, `Target Not Interested`, `Client Not Interested`, `Conflicted`) →
+  assert `Sequence_Active__c=false`, correct `Sequence_Stop_Reason__c`,
   `Next_Action_Date__c=null`, and `Limits.getDmlStatements()` shows no extra DML for the
   stamp (R1, R2).
 - Status unchanged → no stop (R3). Already inactive → no change (R4).

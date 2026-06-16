@@ -193,10 +193,10 @@ private class TargetTriggerHandlerTest {
     @IsTest
     static void testEachTerminalStatusStopsActiveTarget() {
         Map<String, String> expected = new Map<String, String>{
-            'Converted' => 'Converted',
-            'Meeting Booked' => 'Meeting Booked',
-            'Do Not Contact' => 'Do Not Contact',
-            'Replied' => 'Replied'
+            'Closed' => 'Closed',
+            'Target Not Interested' => 'Target Not Interested',
+            'Client Not Interested' => 'Client Not Interested',
+            'Conflicted' => 'Conflicted'
         };
 
         // Baseline: a NON-terminal status-change update on an identical active
@@ -218,6 +218,10 @@ private class TargetTriggerHandlerTest {
             );
 
             t.Status__c = terminal;
+            // Org validation rule requires Fallout__c when Status = Client Not Interested.
+            if (terminal == 'Client Not Interested') {
+                t.Fallout__c = 'Yes';
+            }
             Integer dmlBefore = Limits.getDmlStatements();
             update t; // fires before-update terminal stop (R1, R2)
             Integer terminalDml = Limits.getDmlStatements() - dmlBefore;
@@ -274,7 +278,7 @@ private class TargetTriggerHandlerTest {
         update t;
 
         Test.startTest();
-        t.Status__c = 'Converted'; // terminal, but target already inactive
+        t.Status__c = 'Closed'; // terminal, but target already inactive
         update t;
         Test.stopTest();
 
@@ -295,14 +299,14 @@ private class TargetTriggerHandlerTest {
         Target__c t = seedActiveMidCadence('NonTerminal', 5, Datetime.now().addDays(4));
 
         Test.startTest();
-        t.Status__c = 'Closed'; // existing non-terminal value
+        t.Status__c = 'In-Process'; // existing non-terminal value
         update t;
         Test.stopTest();
 
         Target__c after = reload(t.Id);
         Assert.isTrue(after.Sequence_Active__c, 'Non-terminal change -> still active');
         Assert.areEqual(null, after.Sequence_Stop_Reason__c, 'Non-terminal change -> no stop reason');
-        Assert.areEqual('Closed', after.Status__c, 'Status update itself succeeds');
+        Assert.areEqual('In-Process', after.Status__c, 'Status update itself succeeds');
     }
 
     /**
@@ -315,7 +319,8 @@ private class TargetTriggerHandlerTest {
         Target__c t = seedActiveMidCadence('AutoKill', 6, Datetime.now().addHours(-1));
 
         // Auto-deactivate via terminal status (R1) — before-update stamp.
-        t.Status__c = 'Do Not Contact';
+        t.Status__c = 'Client Not Interested';
+        t.Fallout__c = 'Yes'; // org validation rule requires Fallout__c for this status
         update t;
         Integer stepBefore = reload(t.Id).Sequence_Step__c.intValue();
 
@@ -392,7 +397,7 @@ private class TargetTriggerHandlerTest {
         // Now the terminal bulk change: the before-update stamp must add no DML
         // beyond the baseline (pure in-memory mutation of Trigger.new) (R7).
         for (Target__c t : targets) {
-            t.Status__c = 'Meeting Booked';
+            t.Status__c = 'Target Not Interested';
         }
         Integer dmlBefore = Limits.getDmlStatements();
         update targets;
@@ -408,7 +413,7 @@ private class TargetTriggerHandlerTest {
             SELECT COUNT() FROM Target__c
             WHERE Id IN :targets
               AND Sequence_Active__c = false
-              AND Sequence_Stop_Reason__c = 'Meeting Booked'
+              AND Sequence_Stop_Reason__c = 'Target Not Interested'
               AND Next_Action_Date__c = null
         ];
         Assert.areEqual(200, stopped, 'All 200 deactivated with stop reason + cleared date (R7)');

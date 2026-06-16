@@ -74,6 +74,7 @@ public with sharing class SequenceEngineService {
                 continue;
             }
 
+            System.debug('processing target from engine ' + t.Id + ' for step ' + stepToSend);
             // (a) email
             emailRequests.add(new SequenceEmailService.EmailRequest(t, cfg));
 

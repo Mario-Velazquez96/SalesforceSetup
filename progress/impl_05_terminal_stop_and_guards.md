@@ -121,3 +121,55 @@ DML beyond what any Target update already costs (it mutates `Trigger.new` only).
 ## tasks.md
 
 All checkboxes marked `[x]`.
+
+---
+
+## CHANGE — 2026-06-15 client reversal (supersedes the 2026-06-13 picklist-add)
+
+Client reverted the picklist additions. The cadence now reuses EXISTING
+`Status__c` values; no new picklist values exist. Handler/trigger code unchanged
+(terminal match stays metadata-driven) — only the picklist, the CMDT rows, the
+manifest, and the tests changed.
+
+### STEP 1 — picklist revert (R8)
+- Pre-check on BlueSky (`--file` SOQL): `Converted/Meeting Booked/Do Not
+  Contact/Replied` → **0 records**. Safe to remove.
+- `Status__c.field-meta.xml`: removed those four `<value>` entries; back to the
+  original 10 values (default `Not Cleared`, `restricted=true` unchanged).
+- Deployed `Status__c` (source-dir; `--metadata Target__c.Status__c` rejected by
+  this CLI build, same as the prior run) → **Succeeded, 0 errors** (0AfV900000CV9L3KAL).
+
+### STEP 2 — CMDT re-map (R1, R5, R8)
+- Deleted the 4 old `Sequence_Terminal_Status.*` source files; created 4 new
+  rows (`Closed`, `Target_Not_Interested`, `Client_Not_Interested`, `Conflicted`)
+  matching the working `xmlns:xsd` root format; `Status_Value__c` matches each
+  picklist value exactly.
+- `manifest/package.xml`: replaced the 4 old CMDT member names with the 4 new ones.
+- Deployed CustomMetadata (4 Created, 0 errors — deploy 0AfV900000CV9WLKA1;
+  CLI progress-bar localization bug threw on the foreground call but the job
+  Succeeded per `deploy report`).
+- Removed the 4 stale org rows via a destructive deploy (0AfV900000CV5ZCKA1,
+  0 errors). Verified in-org: `Sequence_Terminal_Status__mdt` now has exactly the
+  4 NEW rows and none of the old ones.
+
+### STEP 3 — tests
+- `TargetTriggerHandlerTest`: terminal expected-map now
+  `Closed/Target Not Interested/Client Not Interested/Conflicted`;
+  already-inactive test uses `Closed`; kill-switch-auto uses
+  `Client Not Interested`; bulk uses `Target Not Interested`.
+- Negative non-terminal test switched from `Closed` (now terminal) to the
+  genuinely non-terminal existing value `In-Process`.
+- The org validation rule `Status_Client_Not_Interested` requires `Fallout__c`
+  when Status = `Client Not Interested`; the two transitions to that status now
+  set `Fallout__c='Yes'` so the save is valid (matches spec acceptance: a
+  terminal-status save is a valid, reachable update).
+- `tasks.md` revised items all `[x]`.
+
+### STEP 4 — verify
+- BlueSky `RunSpecifiedTests` TargetTriggerHandlerTest + SequenceSchedulerBatchTest:
+  **26/26 pass, 0 failures.** `TargetTriggerHandler` coverage **98%** (>= 85%).
+- `sf project deploy validate` (checkOnly) of the changed components +
+  TargetTriggerHandlerTest → **Succeeded, 0 component errors, 0 test errors.**
+- Temp scripts cleaned up; only the pre-existing feature-04 apex script remains.
+
+`feature_list.json` not touched. Awaiting reviewer.

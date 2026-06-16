@@ -266,3 +266,24 @@ makes Timer/None steps a no-op on call completion. New test
 Call 6 completes (not overwritten with now + Days_Until_Next_Email). All 38 tests
 across TaskTriggerHandlerTest / TargetTriggerHandlerTest / SequenceSchedulerBatchTest
 pass (0 failures); TaskTriggerHandler coverage 89% (51/57 lines, >= 85%).
+
+## Change — 2026-06-15 (client reversal: 05_terminal_stop_and_guards)
+
+Client reverted the previously-added `Target__c.Status__c` values. No new picklist
+values are used by the cadence.
+
+- Removed the four added values from the `Status__c` restricted value set:
+  `Converted`, `Meeting Booked`, `Do Not Contact`, `Replied` (org checked first —
+  zero records used any of them, so removal was safe). Picklist back to its
+  original 10 values; default `Not Cleared`, `restricted=true` unchanged.
+- Re-mapped `Sequence_Terminal_Status__mdt` to the EXISTING `Status__c` values:
+  `Closed`, `Target Not Interested`, `Client Not Interested`, `Conflicted`
+  (deleted the four old CMDT rows via a destructive deploy; created four new
+  rows). `getAll()` now returns exactly those four.
+- Updated `TargetTriggerHandlerTest` to use the new terminal values; the
+  non-terminal negative test now uses `In-Process` (since `Closed` is now
+  terminal). The `Client Not Interested` transitions set `Fallout__c='Yes'` to
+  satisfy the existing `Status_Client_Not_Interested` validation rule.
+- No handler/trigger logic changed (terminal match stays metadata-driven).
+- BlueSky: TargetTriggerHandlerTest + SequenceSchedulerBatchTest = 26/26 pass;
+  `TargetTriggerHandler` coverage 98%. Deploy validation Succeeded (0 errors).
