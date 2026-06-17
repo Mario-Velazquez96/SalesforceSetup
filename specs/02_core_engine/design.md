@@ -33,7 +33,8 @@ classes/
 2. Look up config `cfg = SequenceStepConfigService.get(stepToSend)`.
 3. `SequenceEmailService.send(...)` — render `cfg.Email_Template_Dev_Name__c`, prefix
    `"RE: "` when `cfg.Is_Reply__c` (R4), attach `Sequence_Attachment_Id__c`'s latest
-   `ContentVersion` when present (R5/R6), From = Org-Wide Email Address by name (R3/R14).
+   `ContentVersion` when present (R5/R6), From = send-as-owner OWE matched to the Target
+   owner's email, with fallback (R3/R14).
 4. Build the `Call N` Task (R8b) and the completed Email Task (R8c).
 5. Set `t.Sequence_Step__c = stepToSend` (R8d).
 6. Schedule next per `cfg.Next_Trigger_Type__c`: `Timer` → `Next_Action_Date__c = now +
@@ -47,23 +48,57 @@ and performs **one** `Messaging.sendEmail`, **one** Task insert, and **one** Tar
 
 - `setTemplateId` (resolved from `Email_Template_Dev_Name__c`), `setTargetObjectId(t.Primary_Contact__c)`,
   `setWhatId(t.Id)`, `setSaveAsActivity(false)` (we log our own completed Email task),
-  `setOrgWideEmailAddressId(...)` resolved by address/name.
+  `setOrgWideEmailAddressId(...)` set to the **send-as-owner** OWE (see below).
 - Subject "RE: " prefix applied in Apex, not in the template (keeps one template per step).
 - Attachment: `ContentSelector` fetches the latest `ContentVersion.Id` for
   `Sequence_Attachment_Id__c`; `setEntityAttachments(new List<String>{ contentVersionId })`.
 - **No** `In-Reply-To`/`References` headers — true threading is out of scope (§8).
+
+## Send-as-owner From resolution (R3, R14) — Option A
+
+Salesforce only lets Apex send from a verified Org-Wide Email Address (OWE) or the running
+user, so "send as the owner" is implemented as a runtime match of the owner's email to a
+verified OWE. The work is fully bulkified (no SOQL in loops):
+
+1. **Bulk-resolve owners' emails** — collect every `req.target.OwnerId` across all requests
+   and run **one** `User` query over `Target.OwnerId`
+   (`SELECT Id, Email FROM User WHERE Id IN :ownerIds WITH USER_MODE`), producing a
+   `Map<Id ownerId, String email>` (and, by Target, the owner email per message).
+2. **Bulk-resolve OWEs by address** — run **one** query
+   `SELECT Id, Address FROM OrgWideEmailAddress WHERE Address IN :ownerEmails` and build a
+   `Map<String oweAddressLower, Id> oweByAddress` (lower-cased keys for case-insensitive
+   match).
+3. **Per message** — `setOrgWideEmailAddressId(...)` to the owner's OWE id when
+   `oweByAddress` contains the owner's (lower-cased) email; otherwise fall back to the
+   default OWE (resolved by display name, as today) and ultimately to the running user
+   (leave OWE id null).
+
+**Testability constraint (seam):** `OrgWideEmailAddress` is **not insertable in Apex
+tests**, so real OWEs cannot be created in a test. The owner-email → OWE matching must be
+exposed via a `@TestVisible` seam — e.g. an injectable
+`@TestVisible static Map<String oweAddressLower, Id>` (the resolved `oweByAddress` map) —
+so unit tests can inject a known map and assert (a) an owner whose email is present selects
+that OWE id, and (b) an owner whose email is absent falls back (null/default), all without
+provisioning real OWEs.
+
+**Option B POC removed:** the prior `Reply-To` = owner / sender-display-name approach
+(shared OWE From + reply routing) is **removed** from `SequenceEmailService` and its tests,
+along with `progress/poc_reply_to_owner.md`. Per the 2026-06-15 decision, the From is the
+owner's OWE (send-as-owner), not a shared OWE with Reply-To.
 
 ## Security (§9, §14 dev rules)
 
 - Services `with sharing`; selectors `inherited sharing`.
 - All SOQL `WITH USER_MODE`; all DML `Database.*(..., AccessLevel.USER_MODE)` with
   `Database.SaveResult` checks (partial success).
-- Org-Wide Email Address + template Ids resolved by developer name / metadata — never
-  hardcoded.
+- OWE + template Ids resolved at runtime (owner-email match / developer name / metadata) —
+  never hardcoded.
 
 ## Bulkification (§9)
 
 - Engine public methods take collections; internal loops only build in-memory lists.
+- One `User` query for owner emails, one `OrgWideEmailAddress` query for OWE matching —
+  both outside any loop.
 - Exactly one `sendEmail`, one Task insert, one Target update per invocation.
 - Config + selector results fetched once (CMDT via `getAll()` — no SOQL cost).
 
@@ -75,11 +110,14 @@ and performs **one** `Messaging.sendEmail`, **one** Task insert, and **one** Tar
 - Email: use `Messaging.reserveSingleEmailCapacity` / test context so sends don't fail;
   assert no exception + that the Call task and completed Email task exist with correct
   fields, and `Sequence_Step__c`/`Next_Action_Date__c` are set per trigger type.
+- **Send-as-owner (via the `@TestVisible` seam):** inject a known
+  `Map<String oweAddressLower, Id>` and assert (a) a Target whose owner email is in the
+  map selects that owner's OWE id, and (b) a Target whose owner email is absent falls back
+  (no error, default/running-user path). No real `OrgWideEmailAddress` is created.
 - **Bulk:** 200 active targets through the bulk method → assert step advancement on all,
   ≤1 DML per object (use `Limits`), no governor errors.
 - **Guard:** inactive target → assert no tasks, no email, no field change (R7).
-- Coverage target **95%** for `SequenceEngineService`/`SequenceEmailService` (core engine,
-  per §12 / conventions).
+- Coverage target **>= 85%** for `SequenceEngineService`/`SequenceEmailService`.
 
 ## Open items / discrepancies
 

@@ -108,3 +108,95 @@ APPROVE. All R1–R14 are test-backed, 27/27 tests pass, both required classes a
 at 96% (>= 95% gate), conventions and scope are clean. The org-wide 85% shortfall
 is a pre-existing, out-of-scope condition and is not a blocker for closing this
 feature. Leader: `02_core_engine` may be marked `done`.
+
+---
+
+## Option A re-review (2026-06-15)
+
+**Verdict: APPROVE**
+**Reviewer:** reviewer subagent · **Date:** 2026-06-17 · **Org:** BlueSky sandbox
+
+Re-review of the client-approved behavioral change: "Option A" send-as-owner in
+`SequenceEmailService`, superseding the short-lived Option B (Reply-To) POC.
+
+### 1. R3 / Option A — send-as-owner From selection (VERIFIED CORRECT)
+
+`SequenceEmailService.buildMessages` sets the From by matching the TARGET
+OWNER's email to a verified OWE, with the documented fallback chain:
+
+- **Bulk owner-email resolution** — `resolveOwnerEmails(requests)` collects every
+  `req.target.OwnerId` into a Set and runs ONE `User` query
+  (`SELECT Id, Email FROM User WHERE Id IN :ownerIds WITH USER_MODE`), returning
+  `Map<Id targetId, String email>`. No SOQL in a loop. (lines 227-261)
+- **Bulk OWE-by-address resolution** — `resolveOwnerOweByAddress(...)` runs ONE
+  `OrgWideEmailAddress WHERE Address IN :ownerEmails` query into
+  `Map<String addressLower, Id>` (lower-cased for case-insensitive match).
+  (lines 272-292)
+- **@TestVisible seam** — `ownerOweByAddressOverride` (Map<String,Id>) is returned
+  INSTEAD of querying when non-null, so tests inject a known owner->OWE map without
+  provisioning real OWEs. Plus `selectedOweByTarget` oracle records the chosen id
+  per Target (SingleEmailMessage has no OWE getter). (lines 34-46, 272-276)
+- **Per-message selection** — owner OWE if matched, else `defaultOrgWideId`
+  (resolved by display name, with any-OWE then null fallback), else unset =
+  running user; only calls `setOrgWideEmailAddressId` when non-null. (lines 145-158)
+- The bulk resolution is performed ONCE before the per-request loop; the loop only
+  does in-memory map lookups. 200-safe.
+
+### 2. R14 — security (VERIFIED INTACT)
+
+`with sharing` on the service; `WITH USER_MODE` on the `User` query; no hardcoded
+addresses, Ids, or template Ids — owner-email match / display name / developer
+name resolved at runtime. (The OWE-by-address query has no USER_MODE, consistent
+with the existing default-OWE resolver; OWE is org-config metadata, not
+user-shared data — acceptable and unchanged from prior approval.)
+
+### 3. POC removal (VERIFIED FULLY GONE)
+
+- No `setReplyTo`, `setSenderDisplayName`, `resolveOwnerNames`, or
+  `resolveOwnerUsers` anywhere in `SequenceEmailService.cls` (grep: no matches).
+- No Reply-To references or POC tests in `SequenceEmailServiceTest.cls`
+  (grep: no matches). The two new seam-based tests replace them.
+- `progress/poc_reply_to_owner.md` is DELETED (glob: no file found).
+- No `System.debug` in `SequenceEmailService.cls` (grep: no matches).
+
+### 4. Tests + coverage (VERIFIED, RUN BY REVIEWER)
+
+`SequenceEmailServiceTest` covers both required cases via the @TestVisible seam:
+- (a) `testSendAsOwnerSelectsOwnerOwe` — owner email maps to an injected OWE id;
+  asserts `selectedOweByTarget` == that OWE id (owner-matched From).
+- (b) `testSendAsOwnerFallsBackWhenOwnerHasNoOwe` — empty injected map + a
+  nonexistent default display name; asserts the chosen id == the resolved default
+  (or null = running user), proving the fallback path with no error.
+
+Command:
+`sf apex run test --target-org BlueSky --test-level RunSpecifiedTests --tests
+SequenceEmailServiceTest --tests SequenceEngineServiceTest --code-coverage --json
+--wait 30`
+- Outcome: **Passed — 26/26, 0 failures.**
+- Per-class coverage: **SequenceEmailService 92% (133/144)**, SequenceEngineService
+  96% (92/96) — both exceed the >= 85% gate.
+- BlueSky has no OWEs (live send falls back to running user — expected). Org-wide
+  ~54% is the documented out-of-scope sample-class condition; judged per-feature.
+  Out-of-scope `TaskTargetControllerTest` not in this run/source tree — ignored.
+
+### 5. tasks.md + repo cleanliness
+
+- `tasks.md` reflects the change: the send-as-owner task (line 8), the POC-removal
+  task (line 9), and the seam-based test task (line 17) are all `[x]`, and the
+  Verification section documents the R3 send-as-owner cases.
+- Working tree clean of scratch files: only the expected feature/spec/progress
+  files are modified; NO untracked files.
+
+### Minor (non-blocking)
+
+- `tasks.md` line 21 ("Run tests; confirm >= 85% coverage; deploy-validate") is
+  still `[ ]` though the impl note documents it as done and the reviewer just
+  re-verified the run. Recommend the implementer flip it to `[x]` for accuracy.
+  Not a blocker — the substance (tests green, coverage met) is verified.
+
+### Conclusion
+
+Send-as-owner selection (owner OWE -> default OWE -> running user) and its
+fallback are correct, bulk-safe, and tested via the @TestVisible seam. The
+Option B POC is fully removed (code, tests, and doc). The leader may mark
+`02_core_engine` as `done`.

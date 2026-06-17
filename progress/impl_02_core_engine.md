@@ -4,6 +4,53 @@ Status: COMPLETE — all tests green, per-class coverage targets met, deploy
 validated against the BlueSky sandbox. Awaiting reviewer approval before the
 feature is marked `done`.
 
+## Update 2026-06-15 — Option A (send-as-owner) implemented; Option B POC removed
+
+Per the client decision (2026-06-15, recorded in the revised R3/R14 + design
+notes), `SequenceEmailService` now sends each cadence email FROM the Target
+record OWNER's own verified Org-Wide Email Address (OWE), with fallback to a
+default OWE (by display name) and ultimately the running user.
+
+Changed (scope: `SequenceEmailService` + its test + POC doc removal only):
+- `buildMessages` now bulk-resolves owner emails (one `User` query over
+  `Target.OwnerId`), bulk-resolves OWEs by `Address` into
+  `Map<String addressLower, Id>`, and per message sets
+  `setOrgWideEmailAddressId` to the owner's matching OWE; else the default OWE;
+  else unset (running user). No SOQL in the loop; one From per message.
+- New `@TestVisible static Map<String,Id> ownerOweByAddressOverride` seam:
+  `OrgWideEmailAddress` is not insertable in Apex tests, so when this map is set
+  it is used INSTEAD of querying, letting tests inject a known owner→OWE map.
+- New `@TestVisible static Map<Id,Id> selectedOweByTarget` oracle:
+  `SingleEmailMessage` has no `getOrgWideEmailAddressId()`, so the OWE id chosen
+  per Target is recorded here for unit assertions.
+- `resolveOwnerEmails` refactored to a single `User` query (Id, Email) keyed by
+  Target Id; the Option B `resolveOwnerNames`/`resolveOwnerUsers` helpers, the
+  `setReplyTo(owner)` and owner `setSenderDisplayName` calls were REMOVED.
+- `resolveOrgWideEmailAddressId()` kept as the FALLBACK and exposed
+  `@TestVisible` so the fallback test asserts against the real resolved default.
+- Removed leftover `System.debug` lines from this class (conventions).
+
+Tests (`SequenceEmailServiceTest`): removed the POC reply-to tests; added
+`testSendAsOwnerSelectsOwnerOwe` (owner email maps to an injected OWE id → that
+id selected as From) and `testSendAsOwnerFallsBackWhenOwnerHasNoOwe` (no owner
+match → falls back to the resolved default OWE / running user, no error). Kept
+the owner-email resolver and null/empty-safe tests.
+
+Cleanup: deleted `progress/poc_reply_to_owner.md` (superseded). No temp scripts
+created. `feature_list.json` statuses unchanged.
+
+Requirements re-satisfied by this change: R3 (send-as-owner From with fallback
+chain) and R14 (no hardcoded OWE — owner-email match at runtime).
+
+Verification (BlueSky): `SequenceEmailServiceTest` + `SequenceEngineServiceTest`
+= 26/26 passing, 0 failures; `SequenceEmailService` 92%, `SequenceEngineService`
+96% (both >= 85%). Full-source `RunLocalTests` deploy validation: the only 2
+failures are the pre-existing, org-resident `TaskTargetControllerTest`
+(not present in this source tree, out of feature-02 scope, unrelated to the
+email service — same out-of-scope class family flagged in this report's coverage
+caveat). All feature-02 components validate without component or coverage
+failures. Never deployed to production.
+
 ## Scope
 
 Callable core of the cadence (Apex only — no triggers or jobs, per the spec).

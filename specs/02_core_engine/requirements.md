@@ -17,7 +17,7 @@ or jobs** — it is verified in isolation with unit + bulk tests.
 - `TargetSelector`, `TaskSelector`, `ContentSelector` (`inherited sharing`, USER_MODE SOQL).
 - `SequenceStepConfigService` — reads `Sequence_Step_Config__mdt`.
 - `SequenceEmailService` — builds/sends `Messaging.SingleEmailMessage` (template, "RE:",
-  attachment, Org-Wide Email Address); plus an `@InvocableMethod` wrapper.
+  attachment, send-as-owner Org-Wide Email Address); plus an `@InvocableMethod` wrapper.
 - `SequenceEngineService` — `processStep`, helpers, kill-switch guard, next-step scheduling.
 
 ## Out of scope
@@ -29,7 +29,7 @@ or jobs** — it is verified in isolation with unit + bulk tests.
 
 **R1 (Ubiquitous):** `SequenceStepConfigService` shall expose `Sequence_Step_Config__mdt` as a `Map<Integer, Sequence_Step_Config__mdt>` keyed by `Step_Number__c`.
 **R2 (Ubiquitous):** `TargetSelector`, `TaskSelector`, and `ContentSelector` shall centralize all SOQL for their objects, declared `inherited sharing`, querying `WITH USER_MODE` and selecting every field the engine references (Rule A1).
-**R3 (Event-driven):** When `SequenceEmailService.send` runs for a target+step, it shall build a `Messaging.SingleEmailMessage` from the step's Lightning Email Template (`Email_Template_Dev_Name__c`) using `setTargetObjectId(Primary_Contact__c)` and `setWhatId(Target__c.Id)`, and set the From to the Org-Wide Email Address resolved by name.
+**R3 (Event-driven):** When `SequenceEmailService.send` runs for a target+step, it shall build a `Messaging.SingleEmailMessage` from the step's Lightning Email Template (`Email_Template_Dev_Name__c`) using `setTargetObjectId(Primary_Contact__c)` and `setWhatId(Target__c.Id)`, and set the From (send-as-owner) to the verified Org-Wide Email Address whose address matches the **Target record owner's** email; where the owner has no matching verified Org-Wide Email Address, it shall fall back to a default Org-Wide Email Address (resolved by display name) and ultimately to the running user.
 **R4 (Optional):** Where the step config's `Is_Reply__c` is true, the email subject shall be prefixed with `"RE: "`.
 **R5 (State-driven):** While `Target__c.Sequence_Attachment_Id__c` is populated, the email shall include that ContentDocument's latest `ContentVersion` via `setEntityAttachments`.
 **R6 (State-driven):** While `Target__c.Sequence_Attachment_Id__c` is blank, the email shall be sent with no attachment.
@@ -40,13 +40,34 @@ or jobs** — it is verified in isolation with unit + bulk tests.
 **R11 (Event-driven):** When `processStep` completes a step whose config `Next_Trigger_Type__c='None'` (step 10), the engine shall leave `Next_Action_Date__c` null and make no further scheduling.
 **R12 (Ubiquitous):** All engine DML shall be bulkified — collected into lists and executed as a single DML per object across all targets in the transaction (200-record safe), via `Database.*(records, AccessLevel.USER_MODE)` with partial-success handling.
 **R13 (Optional):** Where a flow needs to call the send, `SequenceEmailService` shall expose an `@InvocableMethod` (with `label`+`description`) that delegates to the same send logic.
-**R14 (Ubiquitous):** All classes in this feature shall be `with sharing` (services) or `inherited sharing` (selectors); no hardcoded Org-Wide Email Address or template Ids — resolved by developer name / metadata.
+**R14 (Ubiquitous):** All classes in this feature shall be `with sharing` (services) or `inherited sharing` (selectors); no hardcoded Org-Wide Email Address or template Ids — resolved by developer name / metadata. Org-Wide Email Address selection is performed by matching the **Target owner's email** to a verified Org-Wide Email Address at runtime (send-as-owner), with the documented fallback chain — no addresses or Ids are hardcoded.
+
+## Resolved decisions (2026-06-15)
+
+- **Client chose Option A (send as record owner).** Cadence emails are sent **FROM the
+  Target record OWNER's own email address**. The From is the owner's **verified
+  Org-Wide Email Address (OWE)**, with a fallback to a default OWE (resolved by display
+  name) and ultimately to the running user when the owner has no matching verified OWE.
+- This **supersedes the short-lived "Option B" POC** (shared From + `Reply-To` = owner),
+  which is being **removed** (see `progress/poc_reply_to_owner.md`, to be deleted).
+- **Mechanism:** Salesforce only lets Apex send from a verified OWE or the running user.
+  "Send as the owner" is implemented by matching the Target owner's email to a verified
+  OWE and using `setOrgWideEmailAddressId`. This keeps R14 intact — all addresses/Ids are
+  resolved at runtime, none hardcoded.
+- **Operational prerequisite (org setup, not deployable metadata):** each sending rep's
+  email address must be configured and **VERIFIED** as an Org-Wide Email Address in the
+  org. Owners without a verified OWE fall back per the chain above. This is org
+  configuration; it is not part of the deployed metadata for this feature.
 
 ## Acceptance
 
 - `processStep` on an active single target produces: 1 outbound email (test context), an
   open `Call N` task, a completed Email task, `Sequence_Step__c` advanced, and the correct
   `Next_Action_Date__c` per the step's `Next_Trigger_Type__c`.
+- An email for a Target whose owner has a **verified OWE** is sent **from that owner's
+  address** (the owner's OWE id is selected).
+- An email for a Target whose owner has **no matching verified OWE** falls back (default
+  OWE by display name, then running user) **without error**.
 - An inactive target produces nothing (R7).
 - A 200-target bulk call stays within 1 DML per object and sends without governor errors.
 - Solution Design §12 unit-test assertions for the engine pass.

@@ -287,3 +287,30 @@ values are used by the cadence.
 - No handler/trigger logic changed (terminal match stays metadata-driven).
 - BlueSky: TargetTriggerHandlerTest + SequenceSchedulerBatchTest = 26/26 pass;
   `TargetTriggerHandler` coverage 98%. Deploy validation Succeeded (0 errors).
+
+## Change — 2026-06-15 (02_core_engine: Option A send-as-owner)
+
+Implemented Option A send-as-owner — cadence email From = the Target owner's
+verified Org-Wide Email Address (OWE), matched by the owner's email at runtime,
+with fallback to a default OWE (resolved by display name) and ultimately the
+running user. Removed the prior Option B reply-to POC (the `setReplyTo`=owner /
+owner `setSenderDisplayName` logic + its helpers and tests). Scope limited to
+`SequenceEmailService` + `SequenceEmailServiceTest`.
+
+- `buildMessages` bulk-resolves owner emails (one `User` query over
+  `Target.OwnerId`) and OWEs by `Address` into `Map<String addressLower, Id>`,
+  then per message `setOrgWideEmailAddressId(ownerOweId ?? defaultOweId)`; unset
+  = running user. One From per message, no SOQL in the loop.
+- Tested via a `@TestVisible` OWE-map seam (`ownerOweByAddressOverride`) because
+  `OrgWideEmailAddress` is not insertable in Apex tests, and a `@TestVisible`
+  selection oracle (`selectedOweByTarget`) because `SingleEmailMessage` has no
+  OWE getter. New tests assert (a) owner→matching OWE selects that id and (b) no
+  match → fallback to the resolved default/running user, without real OWEs.
+- Deleted `progress/poc_reply_to_owner.md`. `feature_list.json` unchanged.
+- BlueSky: SequenceEmailServiceTest + SequenceEngineServiceTest = 26/26 pass, 0
+  failures; `SequenceEmailService` 92%, `SequenceEngineService` 96% (>= 85%).
+  BlueSky has no OWE, so live send still falls back to the running user
+  (expected); the seam is how selection is tested. Full-source RunLocalTests
+  validation: only failures are the pre-existing org-resident
+  `TaskTargetControllerTest` (not in this source tree, out of scope). Never
+  deployed to production.

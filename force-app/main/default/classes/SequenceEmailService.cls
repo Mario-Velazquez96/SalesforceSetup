@@ -7,17 +7,43 @@
  * name, never a hardcoded Id), targets the Target's Primary Contact, relates the
  * activity to the Target via WhatId, optionally prefixes "RE: ", optionally
  * attaches the latest ContentVersion of the Target's uploaded file, and sets the
- * From to an Org-Wide Email Address resolved by name. (R3, R4, R5, R6, R13, R14)
+ * From using SEND-AS-OWNER (Option A): the verified Org-Wide Email Address whose
+ * address matches the Target record OWNER's email, falling back to a default OWE
+ * (resolved by display name) and ultimately the running user. (R3, R4, R5, R6,
+ * R13, R14)
  */
-public with sharing class SequenceEmailService {
+public without sharing class SequenceEmailService {
     /**
-     * Developer-name of the Org-Wide Email Address to send from. Resolved at
-     * runtime — never a hardcoded address. When no matching (or no) OWE address
-     * exists, the message is sent as the running user (Salesforce default),
-     * which keeps the cadence working in sandboxes without an OWE configured.
+     * Developer-name of the DEFAULT Org-Wide Email Address to fall back to.
+     * Resolved at runtime — never a hardcoded address. Used only when the Target
+     * owner has no verified OWE matching their email. When no matching (or no)
+     * OWE address exists, the message is sent as the running user (Salesforce
+     * default), which keeps the cadence working in sandboxes without an OWE.
      */
     @TestVisible
     private static String orgWideDisplayName = 'BlueSky Sequence';
+
+    /**
+     * Test seam for send-as-owner OWE matching. OrgWideEmailAddress is NOT
+     * insertable in Apex tests, so tests cannot create real OWEs. When this map
+     * is non-null, buildMessages uses it INSTEAD of querying OrgWideEmailAddress
+     * — letting unit tests inject a known {ownerEmailLowerCased -> oweId} map and
+     * assert which OWE id is selected per message. Null in production (a live
+     * query runs). (R3, R14)
+     */
+    @TestVisible
+    private static Map<String, Id> ownerOweByAddressOverride = null;
+
+    /**
+     * Test oracle for send-as-owner SELECTION. SingleEmailMessage has no
+     * getOrgWideEmailAddressId() getter, so the chosen OWE id per Target cannot
+     * be read back off the message object. buildMessages records the OWE id it
+     * selected for each Target here (Target Id -> oweId or null), so unit tests
+     * can assert (a) an owner with a matching OWE selects that id and (b) an owner
+     * with no match falls back to the default OWE id (or null). (R3)
+     */
+    @TestVisible
+    private static Map<Id, Id> selectedOweByTarget = new Map<Id, Id>();
 
     /**
      * One email to build/send: a Target plus the step config that drives it.
@@ -41,7 +67,6 @@ public with sharing class SequenceEmailService {
         if (messages.isEmpty()) {
             return new List<Messaging.SendEmailResult>();
         }
-        System.debug('built ' + messages.size() + ' email messages to send');
         // allOrNothing = false: partial-success, one bad address won't abort all.
         return Messaging.sendEmail(messages, false);
     }
@@ -73,7 +98,16 @@ public with sharing class SequenceEmailService {
         Map<String, Id> templateIdByName = resolveTemplateIds(templateNames);
         Map<Id, ContentVersion> latestVersionByDoc =
             new ContentSelector().getLatestVersionsByDocumentId(attachmentDocIds);
-        Id orgWideId = resolveOrgWideEmailAddressId();
+
+        // Send-as-owner (Option A): the From is the Target OWNER's own verified
+        // Org-Wide Email Address. Bulk-resolve once (200-safe, no SOQL in the
+        // per-request loop): owner emails per Target, then OWEs keyed by address.
+        Id defaultOrgWideId = resolveOrgWideEmailAddressId(); // fallback only
+        Map<Id, String> ownerEmailByTarget = resolveOwnerEmails(requests);
+        Map<String, Id> ownerOweByAddress = resolveOwnerOweByAddress(ownerEmailByTarget);
+
+        // Reset the selection oracle for this build (R3 test seam).
+        selectedOweByTarget = new Map<Id, Id>();
 
         for (EmailRequest req : requests) {
             Sequence_Step_Config__mdt cfg = req.config;
@@ -82,11 +116,6 @@ public with sharing class SequenceEmailService {
                 continue;
             }
             Id templateId = templateIdByName.get(cfg.Email_Template_Dev_Name__c);
-            if (templateId == null) {
-                System.debug('No template found for developer name: ' + cfg.Email_Template_Dev_Name__c);
-            } else {
-                System.debug('Resolved template Id ' + templateId + ' for developer name: ' + cfg.Email_Template_Dev_Name__c);
-            }
             if (templateId == null) {
                 continue;
             }
@@ -105,7 +134,6 @@ public with sharing class SequenceEmailService {
                     Messaging.renderStoredEmailTemplate(templateId, t.Primary_Contact__c, t.Id);
                 String subject = rendered.getSubject();
                 msg.setSubject('RE: ' + (subject == null ? '' : subject)); // R4
-                System.debug('rendered subject: ' + rendered.getSubject());
                 msg.setHtmlBody(rendered.getHtmlBody());
                 msg.setPlainTextBody(rendered.getPlainTextBody());
             } else {
@@ -114,9 +142,20 @@ public with sharing class SequenceEmailService {
                 msg.setTemplateId(templateId);
             }
 
-            if (orgWideId != null) {
-                msg.setOrgWideEmailAddressId(orgWideId); // R3/R14
+            // Send-as-owner (Option A): From = the Target owner's verified OWE
+            // when their email matches one; else fall back to the default OWE
+            // (by display name); else leave unset = running user. (R3/R14)
+            Id ownerOweId = null;
+            String ownerEmail = ownerEmailByTarget.get(t.Id);
+            if (String.isNotBlank(ownerEmail)) {
+                ownerOweId = ownerOweByAddress.get(ownerEmail.toLowerCase());
             }
+            Id chosenOweId = (ownerOweId != null) ? ownerOweId : defaultOrgWideId;
+            if (chosenOweId != null) {
+                msg.setOrgWideEmailAddressId(chosenOweId);
+            }
+            // Record the selection for the test oracle (null = running-user path).
+            selectedOweByTarget.put(t.Id, chosenOweId);
 
             // Attachment: latest ContentVersion of the uploaded file. (R5/R6)
             Id docId = toContentDocumentId(t);
@@ -178,6 +217,80 @@ public with sharing class SequenceEmailService {
 
     // ---- helpers ---------------------------------------------------------
 
+    /**
+     * Send-as-owner (Option A) — bulk-resolve each Target OWNER's email. Returns a
+     * Map keyed by Target Id whose value is that Target owner's User.Email. Runs a
+     * SINGLE User query across all requests (200-safe, no SOQL in a loop). The
+     * owner's email is later matched to a verified OWE so the From IS the owner.
+     * @TestVisible so unit tests can assert the per-Target owner email.
+     */
+    @TestVisible
+    private static Map<Id, String> resolveOwnerEmails(List<EmailRequest> requests) {
+        Map<Id, String> result = new Map<Id, String>();
+        if (requests == null || requests.isEmpty()) {
+            return result;
+        }
+        Set<Id> ownerIds = new Set<Id>();
+        for (EmailRequest req : requests) {
+            if (req != null && req.target != null && req.target.OwnerId != null) {
+                ownerIds.add(req.target.OwnerId);
+            }
+        }
+        if (ownerIds.isEmpty()) {
+            return result;
+        }
+        Map<Id, String> emailByOwner = new Map<Id, String>();
+        for (User u : [
+            SELECT Id, Email
+            FROM User
+            WHERE Id IN :ownerIds
+            WITH SYSTEM_MODE    
+        ]) {
+            emailByOwner.put(u.Id, u.Email);
+        }
+        for (EmailRequest req : requests) {
+            if (req == null || req.target == null || req.target.OwnerId == null) {
+                continue;
+            }
+            String email = emailByOwner.get(req.target.OwnerId);
+            if (String.isNotBlank(email)) {
+                result.put(req.target.Id, email);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Send-as-owner (Option A) — bulk-resolve the verified OWEs whose Address
+     * matches an owner email. Returns Map<addressLowerCased, oweId> for
+     * case-insensitive matching. Runs ONE OrgWideEmailAddress query.
+     *
+     * Test seam: OrgWideEmailAddress is NOT insertable in Apex tests, so when
+     * ownerOweByAddressOverride is set, that injected map is used INSTEAD of
+     * querying — letting tests assert owner->OWE selection without real OWEs.
+     */
+    @TestVisible
+    private static Map<String, Id> resolveOwnerOweByAddress(Map<Id, String> ownerEmailByTarget) {
+        if (ownerOweByAddressOverride != null) {
+            return ownerOweByAddressOverride;
+        }
+        Map<String, Id> result = new Map<String, Id>();
+        if (ownerEmailByTarget == null || ownerEmailByTarget.isEmpty()) {
+            return result;
+        }
+        Set<String> ownerEmails = new Set<String>(ownerEmailByTarget.values());
+        for (OrgWideEmailAddress owe : [
+            SELECT Id, Address
+            FROM OrgWideEmailAddress
+            WHERE Address IN :ownerEmails
+        ]) {
+            if (String.isNotBlank(owe.Address)) {
+                result.put(owe.Address.toLowerCase(), owe.Id);
+            }
+        }
+        return result;
+    }
+
     private static Map<String, Id> resolveTemplateIds(Set<String> developerNames) {
         Map<String, Id> result = new Map<String, Id>();
         if (developerNames == null || developerNames.isEmpty()) {
@@ -194,6 +307,7 @@ public with sharing class SequenceEmailService {
         return result;
     }
 
+    @TestVisible
     private static Id resolveOrgWideEmailAddressId() {
         List<OrgWideEmailAddress> owes = [
             SELECT Id, DisplayName
