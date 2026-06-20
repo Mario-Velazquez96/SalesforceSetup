@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Cadence project package — ONLY the components created by this project.
+  Excludes pre-existing org metadata (existing Target__c fields, Status__c,
+  Primary_Contact__c, the standard Activity object + its list views, the page
+  layout). The Target_Record_Page flexipage was MODIFIED (LWC added) — it is
+  intentionally left out here; see the note in the handoff. Deploy with
+  test-level RunLocalTests.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <!-- New custom fields (7 Target__c + 2 Activity + 7+2 CMDT fields) -->
+    <types>
+        <members>Target__c.Sequence_Active__c</members>
+        <members>Target__c.Sequence_Step__c</members>
+        <members>Target__c.Days_Until_Next_Email__c</members>
+        <members>Target__c.Sequence_Stop_Reason__c</members>
+        <members>Target__c.Next_Action_Date__c</members>
+        <members>Target__c.Sequence_Attachment_Id__c</members>
+        <members>Target__c.Billing_City__c</members>
+        <members>Activity.Is_Sequence_Call__c</members>
+        <members>Activity.Sequence_Step__c</members>
+        <members>Sequence_Step_Config__mdt.Step_Number__c</members>
+        <members>Sequence_Step_Config__mdt.Email_Template_Dev_Name__c</members>
+        <members>Sequence_Step_Config__mdt.Is_Reply__c</members>
+        <members>Sequence_Step_Config__mdt.Call_Task_Subject__c</members>
+        <members>Sequence_Step_Config__mdt.Call_Due_Offset_Days__c</members>
+        <members>Sequence_Step_Config__mdt.Next_Trigger_Type__c</members>
+        <members>Sequence_Step_Config__mdt.Next_Wait_Days__c</members>
+        <members>Sequence_Terminal_Status__mdt.Status_Value__c</members>
+        <members>Sequence_Terminal_Status__mdt.Stop_Reason__c</members>
+        <name>CustomField</name>
+    </types>
+
+    <!-- New Custom Metadata Type definitions -->
+    <types>
+        <members>Sequence_Step_Config__mdt</members>
+        <members>Sequence_Terminal_Status__mdt</members>
+        <name>CustomObject</name>
+    </types>
+
+    <!-- Custom Metadata records (10 step configs + 4 terminal statuses) -->
+    <types>
+        <members>Sequence_Step_Config.Step_1</members>
+        <members>Sequence_Step_Config.Step_2</members>
+        <members>Sequence_Step_Config.Step_3</members>
+        <members>Sequence_Step_Config.Step_4</members>
+        <members>Sequence_Step_Config.Step_5</members>
+        <members>Sequence_Step_Config.Step_6</members>
+        <members>Sequence_Step_Config.Step_7</members>
+        <members>Sequence_Step_Config.Step_8</members>
+        <members>Sequence_Step_Config.Step_9</members>
+        <members>Sequence_Step_Config.Step_10</members>
+        <members>Sequence_Terminal_Status.Closed</members>
+        <members>Sequence_Terminal_Status.Target_Not_Interested</members>
+        <members>Sequence_Terminal_Status.Client_Not_Interested</members>
+        <members>Sequence_Terminal_Status.Conflicted</members>
+        <name>CustomMetadata</name>
+    </types>
+
+    <!-- Apex classes (12) + test classes (7) -->
+    <types>
+        <members>TargetSelector</members>
+        <members>TaskSelector</members>
+        <members>ContentSelector</members>
+        <members>SequenceStepConfigService</members>
+        <members>SequenceEmailService</members>
+        <members>SequenceEngineService</members>
+        <members>TargetTriggerHandler</members>
+        <members>TaskTriggerHandler</members>
+        <members>SequenceStartQueueable</members>
+        <members>SequenceSchedulerBatch</members>
+        <members>SequenceSchedulerSchedulable</members>
+        <members>SequenceAttachmentController</members>
+        <members>SequenceEmailServiceTest</members>
+        <members>SequenceEngineServiceTest</members>
+        <members>SequenceSelectorsTest</members>
+        <members>TargetTriggerHandlerTest</members>
+        <members>TaskTriggerHandlerTest</members>
+        <members>SequenceSchedulerBatchTest</members>
+        <members>SequenceAttachmentControllerTest</members>
+        <name>ApexClass</name>
+    </types>
+
+    <!-- Triggers (one per object) -->
+    <types>
+        <members>TargetTrigger</members>
+        <members>TaskTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+
+    <!-- LWC -->
+    <types>
+        <members>targetEmailAttachment</members>
+        <name>LightningComponentBundle</name>
+    </types>
+
+    <!-- Custom labels (LWC toasts) -->
+    <types>
+        <members>Sequence_Attachment_Invalid_Input</members>
+        <members>Sequence_Attachment_Upload_Success</members>
+        <members>Sequence_Attachment_Remove_Success</members>
+        <members>Sequence_Attachment_Error_Title</members>
+        <name>CustomLabel</name>
+    </types>
+
+    <!-- Lightning email templates + their folder -->
+    <types>
+        <members>Sequence_Lightning_Emails</members>
+        <name>EmailFolder</name>
+    </types>
+    <types>
+        <members>Sequence_Lightning_Emails/Sequence_Email_1</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_2</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_3</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_4</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_5</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_6</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_7</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_8</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_9</members>
+        <members>Sequence_Lightning_Emails/Sequence_Email_10</members>
+        <name>EmailTemplate</name>
+    </types>
+
+    <!-- Permission sets -->
+    <types>
+        <members>Login_Sequence_Admin</members>
+        <members>Login_Sequence_User</members>
+        <name>PermissionSet</name>
+    </types>
+
+    <version>66.0</version>
+</Package>

@@ -314,3 +314,61 @@ owner `setSenderDisplayName` logic + its helpers and tests). Scope limited to
   validation: only failures are the pre-existing org-resident
   `TaskTargetControllerTest` (not in this source tree, out of scope). Never
   deployed to production.
+
+## TaskTargetControllerTest fix — 2026-06-15
+
+Fixed the client's pre-existing org-resident `TaskTargetControllerTest` so it
+passes now that the cadence `TargetTrigger` is being deployed (Phase 2). The new
+after-insert TargetTrigger -> SequenceStartQueueable enrolled the test's Target
+and created an extra `Call 1` Task, breaking two off-by-one assertions
+(`testGetTargetTasks_pagination`: actual 6 vs 5; `testGetTargetTasks_returnsOpenTargetTasks`:
+actual 3 vs 2). Retrieved TaskTargetController + TaskTargetControllerTest from the
+BlueSky sandbox and set `Sequence_Active__c = false` on the test's Target__c
+inserts (the @TestSetup 'Test Target' and the 'Bare Target' in
+testGetTargetTasks_targetWithNoAccount); the engine's kill-switch then skips them
+so no cadence task is created. Test-only change: no controller logic, assertions,
+or expected counts (5 and 2) altered. Deployed to the BlueSky sandbox with
+RunSpecifiedTests/TaskTargetControllerTest — 8/8 tests pass, 0 failures.
+TaskTargetControllerTest added to manifest/package-cadence-apex.xml so it ships
+with Phase 2; TaskTargetController NOT added (the controller is unchanged and
+already resides in prod identically — it deployed as "Unchanged" to the sandbox).
+
+## Production go-live — 2026-06-15 (BlueSkyProduction)
+
+Deployed the full cadence to production in two phases (the Activity->Task field
+reflection is async and cannot complete inside a single check-only validation, so
+the deploy had to be staged):
+- Phase 1 (manifest/package-cadence-datamodel.xml): data model only — Target/Activity
+  custom fields, both CMDT types + 14 records, 4 custom labels, the Sequence_Lightning_Emails
+  folder + 10 Lightning templates. Deployed RunLocalTests (prod disallows NoTestRun):
+  49/49 components, prod's 18 existing tests green. This committed the Activity fields,
+  which then reflected onto Task/Event.
+- Phase 2 (manifest/package-cadence-apex.xml): 19 Apex classes, 2 triggers, the LWC,
+  both permission sets, plus the fixed TaskTargetControllerTest. Validated then quick-deployed:
+  25/25 components, 90 RunLocalTests passing, 0 failures. Quick-deploy job 0AfVu000002ph6bKAA.
+
+Notes from the rollout:
+- The new after-insert TargetTrigger creates a Call task on active Target inserts, which
+  broke the client's pre-existing TaskTargetControllerTest (off-by-one task counts) — fixed
+  by making its test Targets inactive (above).
+- POST-GO-LIVE operational steps still required (NOT part of the deploy):
+  (1) schedule SequenceSchedulerSchedulable on CRON 0 0 0,8,16 * * ? (helper at
+      scripts/apex/schedule_sequence_scheduler.apex);
+  (2) assign Login_Sequence_User to the reps;
+  (3) configure a verified Org-Wide Email Address on blueskyadvisory.com + DKIM (GoDaddy DNS,
+      DMARC already p=reject) for emails to actually deliver — until then sends fall back to
+      the running user.
+- OPEN PRODUCT QUESTION: every active Target insert now auto-starts the cadence — confirm intended.
+
+Operational completion (2026-06-15):
+- Email DELIVERY confirmed: after the client added DNS records (Authorized Email Domain TXT
+  `_sfdv` + DKIM CNAMEs for selectors sf2026a/sf2026b on blueskyadvisory.com, GoDaddy), an isolated
+  SequenceEmailService.send test on Target a03Vu000021t6BLIAY returned SEND_SUCCESS=true (sends from
+  the owner's OWE, Option A). The earlier failure was Salesforce's "domain isn't verified" gate, not code.
+- 3 OWEs exist (thomas/john/gabriel @blueskyadvisory.com, UserSelection); Option A matches the Target owner.
+- Scheduler SCHEDULED in prod: job "Sequence Scheduler - business hours (MT)", CRON `0 0 7,11,15 * * ?`
+  = 08:00/12:00/16:00 Mountain (owner user thomas is America/Los_Angeles/Pacific, Mountain = +1h; verified
+  next fire = 8:00 AM Mountain). Helper updated at scripts/apex/schedule_sequence_scheduler.apex.
+- STILL TO DO operationally: assign Login_Sequence_User to the reps; confirm the auto-enroll behavior with
+  the client; (optional) add SequenceAttachmentController class access to Login_Sequence_Admin if admins
+  also need the upload LWC.
