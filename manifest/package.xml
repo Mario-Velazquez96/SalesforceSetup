@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
-	<types>
-		<members>Target__c.Blue_Sky_Notes__c</members>
-		<members>Target__c.City__c</members>
-		<members>Target__c.Client_Comments__c</members>
-		<members>Target__c.Company_Name__c</members>
-		<members>Target__c.Country__c</members>
-		<members>Target__c.Coverage_Person__c</members>
-		<members>Target__c.Date_Status_Changed__c</members>
-		<members>Target__c.Direct_Phone_Number__c</members>
-		<members>Target__c.Email__c</members>
-		<members>Target__c.Engagement__c</members>
-		<members>Target__c.Fallout__c</members>
-		<members>Target__c.First_Name__c</members>
-		<members>Target__c.Job_Title__c</members>
-		<members>Target__c.Last_Name__c</members>
-		<members>Target__c.Main_Phone_Number__c</members>
-		<members>Target__c.Mobile_Number__c</members>
-		<members>Target__c.Next_Steps__c</members>
-		<members>Target__c.Notes_for_Client__c</members>
-		<members>Target__c.Primary_Contact__c</members>
-		<members>Target__c.Region__c</members>
-		<members>Target__c.Stage__c</members>
-		<members>Target__c.State__c</members>
-		<members>Target__c.Status__c</members>
-		<members>Target__c.Website__c</members>
-		<name>CustomField</name>
-	</types>
-	<types>
-		<members>Target__c</members>
-		<members>Task</members>
-		<name>CustomObject</name>
-	</types>
-	<types>
-		<members>Target_Record_Page</members>
-		<name>FlexiPage</name>
-	</types>
-	<types>
-		<members>Target__c-Target Layout</members>
-		<name>Layout</name>
-	</types>
+
 	<version>66.0</version>
 </Package>
